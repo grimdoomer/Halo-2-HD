@@ -26,6 +26,14 @@ BITS 32
 	dd		0
 %endmacro
 
+struc RECT
+	.upper		resw	1
+	.left		resw	1
+	.lower		resw	1
+	.right		resw	1
+endstruc
+ASSERT_STRUCT_SIZE RECT, 8
+
 ; Memory addresses for game functions and data:
 %define game_main									00012190h
 %define _crc32_calculate_opt						00163BA0h	; void _crc32_calculate(int* checksum, unsigned char* buffer<eax>, int size<edi>)
@@ -38,6 +46,15 @@ BITS 32
 %define _rasterizer_detect_video_mode				000123B0h
 
 %define _renderer_draw_color_rect					0013C050h	; void _renderer_draw_color_rect(RECT* pRect<ecx>, int color<eax>)
+%define _rasterizer_draw_string						0001FA50h	; void _rasterizer_draw_string(char* string<ecx>, RECT* bounds, RECT* unk1, int unk2, int unk3, float unk4, int unk5, int unk6)
+%define _draw_string_set_primary_color				0013EC70h	; void _draw_string_set_primary_color(vector3* color<eax>)
+%define _draw_string_set_shadow_color				0013ED50h	; void _draw_string_set_shadow_color(vector3* color<eax>)
+
+%define _g_rasterizer_draw_string_font				004E73A0h	; DWORD
+%define _g_rasterizer_draw_string_flags				004E73A4h	; DWORD
+%define _g_rasterizer_draw_string_style				004E73A8h	; DWORD
+%define _g_rasterizer_draw_string_justification		004E73ACh	; DWORD
+
 %define _draw_split_screen_window_bars				0013E635h
 
 %define _initialize_standard_texture_cache			0012C1E0h
@@ -66,6 +83,8 @@ BITS 32
 %define global_d3d_texture_z_as_target_0			00509368h	; IDirect3DTexture8*
 %define global_d3d_texture_z_as_target_1			0050936Ch	; IDirect3DTexture8*
 
+%define _g_swap_count_array_index					004E6400h	; WORD
+%define _g_swap_count_array							004E6402h	; WORD[15]
 %define physical_memory_globals_current_stage		004E6420h	; DWORD
 %define physical_memory_globals_low_stage_address	004E642Ch	; DWORD
 %define physical_memory_globals_hi_stage_address	004E6440h	; DWORD
@@ -96,6 +115,7 @@ BITS 32
 %define free										00324C91h	; __cdecl
 %define lstrlenA									002D1469h
 %define atoi64										00321740h	; __cdecl
+%define snwprintf									00320725h	; __cdecl
 
 ; Utility functions to compile in:
 UTIL_INCLUDE lstrcpyA
@@ -156,6 +176,11 @@ HACK_DATA Hack_DisableZCompress					; BYTE
 HACK_DATA Hack_RuntimeDataRegionSize			; DWORD
 HACK_DATA Hack_RuntimeDataRegionEndAddress		; DWORD
 
+HACK_DATA Dbg_FpsCounterFormatString
+HACK_DATA Dbg_GpuClkFormatString
+HACK_DATA Dbg_GpuLoadFormatString
+HACK_DATA Dbg_GpuClkMulDiv
+
 ; Config.asm:
 HACK_FUNCTION Cfg_ParseConfigFile
 HACK_DATA Cfg_ConfigFileOptionTable
@@ -168,6 +193,7 @@ HACK_DATA Cfg_DbgConfigOptionStringFormatString
 HACK_DATA Cfg_Enable1080iSupport
 HACK_DATA Cfg_DisableAnamorphicScaling
 HACK_DATA Cfg_DisableAtmosphericFog
+HACK_DATA Cfg_DebugMode
 HACK_DATA Cfg_OverclockGPU
 HACK_DATA Cfg_GPUOverclockStep
 HACK_DATA Cfg_OverrideFanSpeed
@@ -435,6 +461,20 @@ _Hook_IDirect3D8_CreateDevice:
 	;---------------------------------------------------------
 _Hook_IDirect3DDevice8_Swap:
 
+		; Check if the rasterizer globals have been initialized. Swap will be called once during startup
+		; to clear any persistent data in the back buffer memory region and we ignore this first call.
+		cmp		dword [Hack_RasterizerTargetsInitialized], 0
+		jz		.trampoline
+
+			; Check if debug mode is enabled and draw perf counters if so.
+			cmp		dword [Cfg_DebugMode], 0
+			jz		.trampoline
+			
+				; Draw FPS counter.
+				call	_Dbg_DrawPerfCounters
+
+.trampoline:
+
 		; Call the trampoline and let the back buffers rotate.
 		push	Hook_IDirect3DDevice8_Swap_reentry		; fake return address
 		push	ebx
@@ -538,7 +578,7 @@ _Hook__rasterizer_init_screen_bounds:
 		call	eax
 		
 		; Check if 1080i is disabled and mask out the flag value if so.
-		cmp		byte [Cfg_Enable1080iSupport], 1
+		cmp		byte [Cfg_Enable1080iSupport], 0
 		jnz		.check_video_mode
 		
 			; Mask out 1080i video flag.
@@ -1629,6 +1669,8 @@ _crc32_calculate_stdcall:
 		add		esp, StackStart
 		ret
 		
+		align 4, db 0
+		
 		%undef Length
 		%undef Buffer
 		%undef Checksum
@@ -1642,6 +1684,7 @@ _crc32_calculate_stdcall:
 	%include "Utilities.asm"
 	%include "Config.asm"
 	%include "DirectX.asm"
+	%include "Debug.asm"
 
 	;---------------------------------------------------------
 	; A poor man's data segment...

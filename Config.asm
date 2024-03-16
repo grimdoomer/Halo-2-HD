@@ -739,6 +739,9 @@ _Cfg_ConfigFileOptionTable:
 	CFG_OPTION _Cfg_DisableAnamorphicScaling, 0xc6f838a8, CFG_TYPE_BOOL, 1
 	CFG_OPTION _Cfg_DisableAtmosphericFog, 0xf02ad616, CFG_TYPE_BOOL, 0
 	
+	; Misc options:
+	CFG_OPTION _Cfg_DebugMode, 0x611da1be, CFG_TYPE_BOOL, 0
+	
 	; Overclocking options:
 	CFG_OPTION _Cfg_OverclockGPU, 0xb0f1b6e5, CFG_TYPE_BOOL, 0
 	CFG_OPTION _Cfg_GPUOverclockStep, 0xdc90cddb, CFG_TYPE_INT, 28
