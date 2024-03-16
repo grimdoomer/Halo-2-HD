@@ -11,8 +11,9 @@ endstruc
 
 ; Config file option types:
 %define CFG_TYPE_INT		0		; Value is a signed integer
-%define CFG_TYPE_STRING		1		; Value is a pointer to a null terminated ascii string
-%define CFG_TYPE_BOOL		2		; Value is a 32-bit integer with value 0 or 1, config file value must be either "false" or "true"
+%define CFG_TYPE_FLOAT		1		; Value is a 32-bit float
+%define CFG_TYPE_STRING		2		; Value is a pointer to a null terminated ascii string
+%define CFG_TYPE_BOOL		3		; Value is a 32-bit integer with value 0 or 1, config file value must be either "false" or "true"
 
 ; CFG_OPTION <variable name> <name crc> <option type> <default value>
 %macro CFG_OPTION 4
@@ -30,6 +31,16 @@ endstruc
 
 ; Compilation options:
 %define CFG_DEBUG_ENABLED			1
+
+
+%if CFG_DEBUG_ENABLED != 0
+
+HACK_DATA Cfg_DbgLineParseFormatString
+HACK_DATA Cfg_DbgConfigOptionIntFormatString
+HACK_DATA Cfg_DbgConfigOptionFloatFormatString
+HACK_DATA Cfg_DbgConfigOptionStringFormatString
+
+%endif
 
 
 	;---------------------------------------------------------
@@ -269,6 +280,9 @@ _Cfg_ParseConfigLine_parse_value:
 		cmp		dword [esi+ConfigFileValue.Type], CFG_TYPE_INT						; if (pConfigOption->Type == CFG_TYPE_INT)
 		jz		_Cfg_ParseConfigLine_parse_uint
 		
+		cmp		dword [esi+ConfigFileValue.Type], CFG_TYPE_FLOAT					; if (pConfigOption->Type == CFG_TYPE_FLOAT)
+		jz		_Cfg_ParseConfigLine_parse_float
+		
 		cmp		dword [esi+ConfigFileValue.Type], CFG_TYPE_STRING					; else if (pConfigOption->Type == CFG_TYPE_STRING)
 		jz		_Cfg_ParseConfigLine_parse_string
 		
@@ -286,6 +300,18 @@ _Cfg_ParseConfigLine_parse_uint:
 		call	eax
 		add		esp, 4
 		mov		dword [esi+ConfigFileValue.Value], eax
+		
+		jmp		_Cfg_ParseConfigLine_exit_success
+		
+_Cfg_ParseConfigLine_parse_float:
+
+		; Parse the value as a float, if the line ends with junk data it's fine as atoi will stop parsing
+		; af the first non-numeric character.
+		push	dword [esp+StackSize+pValueString]
+		mov		eax, atof
+		call	eax
+		add		esp, 4
+		movss	dword [esi+ConfigFileValue.Value], xmm0
 		
 		jmp		_Cfg_ParseConfigLine_exit_success
 		
@@ -667,6 +693,8 @@ _Cfg_StrFind_exit:
 		
 		align 4, db 0
 		
+%if CFG_DEBUG_ENABLED != 0
+		
 	;---------------------------------------------------------
 	; Cfg_PrintConfigOptions() -> Print all the config options and their values
 	;---------------------------------------------------------
@@ -685,6 +713,11 @@ _Cfg_PrintConfigOptions:
 		
 _Cfg_PrintConfigOptions_loop:
 
+		; RIP: DbgPrint doesn't support float...
+		; Float is a special case.
+		;cmp		dword [esi+ConfigFileValue.Type], CFG_TYPE_FLOAT
+		;jz		_Cfg_PrintConfigOptions_loop_float
+
 		push	dword [esi+ConfigFileValue.Value]
 		push	dword [esi+ConfigFileValue.NameCrc]
 		cmp		dword [esi+ConfigFileValue.Type], CFG_TYPE_STRING
@@ -702,7 +735,22 @@ _Cfg_PrintConfigOptions_loop_print:
 		mov		eax, DbgPrint
 		call	eax
 		add		esp, 3*4
+		jmp		_Cfg_PrintConfigOptions_loop_next
 		
+_Cfg_PrintConfigOptions_loop_float:
+
+		INT3
+		sub		esp, 8
+		fld		dword [esi+ConfigFileValue.Value]
+		fstp	qword [esp]
+		push	dword [esi+ConfigFileValue.NameCrc]
+		push	Cfg_DbgConfigOptionFloatFormatString
+		mov		eax, DbgPrint
+		call	eax
+		add		esp, 4*4
+		
+_Cfg_PrintConfigOptions_loop_next:
+
 		; Next option.
 		add		esi, ConfigFileValue_size
 		dec		edi
@@ -718,6 +766,8 @@ _Cfg_PrintConfigOptions_loop_print:
 		%undef StackSize
 		
 		align 4, db 0
+		
+%endif ; CFG_DEBUG_ENABLED
 		
 		
 
@@ -739,6 +789,9 @@ _Cfg_ConfigFileOptionTable:
 	CFG_OPTION _Cfg_DisableAnamorphicScaling, 0xc6f838a8, CFG_TYPE_BOOL, 1
 	CFG_OPTION _Cfg_DisableAtmosphericFog, 0xf02ad616, CFG_TYPE_BOOL, 0
 	
+	; Gameplay options:
+	CFG_OPTION _Cfg_FieldOfView, 0x6ab10407, CFG_TYPE_FLOAT, __?float32?__(70.0)
+	
 	; Misc options:
 	CFG_OPTION _Cfg_DebugMode, 0x611da1be, CFG_TYPE_BOOL, 0
 	
@@ -754,16 +807,24 @@ _Cfg_ConfigFilePath:
 		db `D:\\hd_config.ini`,0
 		align 4, db 0
 		
+%if CFG_DEBUG_ENABLED != 0
+		
 _Cfg_DbgLineParseFormatString:
 		db `Cfg: Crc=0x%08x Name=%s Value=%s\n`,0
 		align 4, db 0
 
 _Cfg_DbgConfigOptionIntFormatString:
 		db `Cfg: Crc=0x%08x Value=%d\n`,0
-		align 4, db 0	
+		align 4, db 0
+		
+_Cfg_DbgConfigOptionFloatFormatString:
+		db `Cfg: Crc=0x%08x Value=%f\n`,0
+		align 4, db 0
 	
 _Cfg_DbgConfigOptionStringFormatString:
 		db `Cfg: Crc=0x%08x Value=%s\n`,0
 		align 4, db 0
+		
+%endif ; CFG_DEBUG_ENABLED
 		
 		

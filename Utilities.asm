@@ -41,6 +41,155 @@ _lstrcpyA:
 		
 %endif
 
+%ifdef UTILINC_atof
+
+;---------------------------------------------------------
+; double __cdecl atof(const char* str)
+;---------------------------------------------------------
+_atof:
+
+		; Modified version of: https://github.com/GaloisInc/minlibc/blob/master/atof.c
+		; Does not support exponent notation...
+
+		%define StackSize		10h
+		%define StackStart		4h
+		%define TempFloat		-4
+		%define Str				4h
+		
+		; Setup stack frame.
+		sub		esp, StackStart
+		push	ecx
+		push	edx
+		push	edi
+
+		mov		edi, dword [esp+StackSize+Str]
+
+		mov     al, byte [edi]
+        add     edi, 1
+        lea     ecx, [eax - 48]
+        xorps   xmm0, xmm0
+        cmp     cl, 9
+        ja      .LBB0_3
+        xorps   xmm0, xmm0
+		
+		mov		dword [esp+StackSize+TempFloat], __?float32?__(10.0)
+        movss   xmm1, dword [esp+StackSize+TempFloat]
+		
+.LBB0_2:                                ; =>This Inner Loop Header: Depth=1
+        movzx   eax, al
+        add     eax, -48
+        xorps   xmm2, xmm2
+        cvtsi2ss        xmm2, eax
+        mulss   xmm0, xmm1
+        addss   xmm0, xmm2
+        movzx   eax, byte [edi]
+        add     edi, 1
+        lea     ecx, [eax - 48]
+        cmp     cl, 10
+        jb      .LBB0_2
+		
+.LBB0_3:
+        cmp     al, 46
+        jne     .LBB0_17
+        mov     cl, byte [edi]
+        lea     eax, [ecx - 48]
+        cmp     al, 9
+        ja      .LBB0_17
+        add     edi, 1
+        xor     eax, eax
+        
+		mov		dword [esp+StackSize+TempFloat], __?float32?__(10.0)
+        movss   xmm1, dword [esp+StackSize+TempFloat]
+		
+.LBB0_6:                                ; =>This Inner Loop Header: Depth=1
+        movzx   ecx, cl
+        add     ecx, -48
+        xorps   xmm2, xmm2
+        cvtsi2ss        xmm2, ecx
+        mulss   xmm0, xmm1
+        addss   xmm0, xmm2
+        add     eax, -1
+        movzx   ecx, byte [edi]
+        lea     edx, [ecx - 48]
+        add     edi, 1
+        cmp     dl, 10
+        jb      .LBB0_6
+        lea     ecx, [eax + 1]
+        cmp     ecx, 2
+        jl      .LBB0_8
+		
+.LBB0_18:                               ; =>This Inner Loop Header: Depth=1
+        mulss   xmm0, xmm1
+        add     ecx, -1
+        cmp     ecx, 1
+        ja      .LBB0_18
+        jmp     .LBB0_17
+		
+.LBB0_8:
+        test    eax, eax
+        je      .LBB0_17
+        mov     edx, eax
+        neg     edx
+        test    dl, 7
+        je      .LBB0_10
+        mov     dl, 1
+        sub     dl, cl
+        movzx   ecx, dl
+        and     ecx, 7
+        neg     ecx
+        xor     edx, edx
+        
+		mov		dword [esp+StackSize+TempFloat], __?float32?__(0.1)
+        movss   xmm1, dword [esp+StackSize+TempFloat]
+		
+.LBB0_12:                               ; =>This Inner Loop Header: Depth=1
+        mulss   xmm0, xmm1
+        add     edx, -1
+        cmp     ecx, edx
+        jne     .LBB0_12
+        mov     ecx, eax
+        sub     ecx, edx
+        add     eax, 7
+        jae     .LBB0_15
+        jmp     .LBB0_17
+		
+.LBB0_10:
+        mov     ecx, eax
+        add     eax, 7
+        jb      .LBB0_17
+		
+.LBB0_15:
+        mov		dword [esp+StackSize+TempFloat], __?float32?__(0.1)
+        movss   xmm1, dword [esp+StackSize+TempFloat]
+		
+.LBB0_16:                               ; =>This Inner Loop Header: Depth=1
+        mulss   xmm0, xmm1
+        mulss   xmm0, xmm1
+        mulss   xmm0, xmm1
+        mulss   xmm0, xmm1
+        mulss   xmm0, xmm1
+        mulss   xmm0, xmm1
+        mulss   xmm0, xmm1
+        mulss   xmm0, xmm1
+        add     ecx, 8
+        jne     .LBB0_16
+		
+.LBB0_17:
+		; Cleanup stack frame.
+		pop		edi
+		pop		edx
+		pop		ecx
+		add		esp, StackStart
+        ret
+		
+		align 4, db 0
+		
+		%undef Str
+		%undef StackStart
+		%undef StackSize
+		
+%endif ; UTILINC_atof
+
 ;---------------------------------------------------------
 ; void Util_InstallHook(void *Address, void *Detour) -> Hooks at the specified address
 ;---------------------------------------------------------
@@ -360,6 +509,25 @@ _Util_OverclockGPU:
 		%undef StackSize
 		
 		align 4, db 0
+		
+;---------------------------------------------------------
+; void Util_DegreesToRadians(float value)
+;---------------------------------------------------------
+_Util_DegreesToRadians:
+
+		%define Value		4h
+		
+		movss	xmm0, dword [esp+Value]
+		push	__?float32?__(0.01745)
+		movss	xmm1, dword [esp]
+		mulss	xmm0, xmm1					; return value * 0.01745f
+		
+		add		esp, 4
+		ret 4
+		
+		align 4, db 0
+		
+		%undef Value
 		
 		
 		

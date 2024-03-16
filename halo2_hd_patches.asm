@@ -59,6 +59,8 @@ ASSERT_STRUCT_SIZE RECT, 8
 
 %define _initialize_standard_texture_cache			0012C1E0h
 
+%define _get_camera_field_of_view					00187130h
+
 %define rasterizer_globals_screen_bounds_y0			00485A8Ah	; WORD
 %define rasterizer_globals_screen_bounds_x0			00485A8Ch	; WORD
 %define rasterizer_globals_screen_bounds_y1			00485A8Eh	; WORD
@@ -119,6 +121,7 @@ ASSERT_STRUCT_SIZE RECT, 8
 
 ; Utility functions to compile in:
 UTIL_INCLUDE lstrcpyA
+UTIL_INCLUDE atof
 
 ; D3D functions to compile in:
 D3D_INCLUDE IDirect3DDevice8_GetBackBuffer
@@ -144,6 +147,7 @@ HACK_FUNCTION Hook_create_render_target_helper
 HACK_FUNCTION Hook_should_render_screen_effect
 HACK_FUNCTION Hook__fog_build_vertex_element
 HACK_FUNCTION Hook__draw_split_screen_window_bars
+HACK_FUNCTION Hook__get_camera_field_of_view
 
 HACK_FUNCTION Hook__initialize_geometry_cache
 HACK_FUNCTION Hook__geometry_cache_globals_cleanup
@@ -176,23 +180,16 @@ HACK_DATA Hack_DisableZCompress					; BYTE
 HACK_DATA Hack_RuntimeDataRegionSize			; DWORD
 HACK_DATA Hack_RuntimeDataRegionEndAddress		; DWORD
 
-HACK_DATA Dbg_FpsCounterFormatString
-HACK_DATA Dbg_GpuClkFormatString
-HACK_DATA Dbg_GpuLoadFormatString
-HACK_DATA Dbg_GpuClkMulDiv
-
 ; Config.asm:
 HACK_FUNCTION Cfg_ParseConfigFile
 HACK_DATA Cfg_ConfigFileOptionTable
 HACK_DATA Cfg_ConfigFilePath
-HACK_DATA Cfg_DbgLineParseFormatString
-HACK_DATA Cfg_DbgConfigOptionIntFormatString
-HACK_DATA Cfg_DbgConfigOptionStringFormatString
 
 
 HACK_DATA Cfg_Enable1080iSupport
 HACK_DATA Cfg_DisableAnamorphicScaling
 HACK_DATA Cfg_DisableAtmosphericFog
+HACK_DATA Cfg_FieldOfView
 HACK_DATA Cfg_DebugMode
 HACK_DATA Cfg_OverclockGPU
 HACK_DATA Cfg_GPUOverclockStep
@@ -360,6 +357,7 @@ _Hack_InitHacks:
 		HOOK_FUNCTION 0001DC40h, Hook_create_render_target_helper
 		HOOK_FUNCTION 00022726h, Hook_should_render_screen_effect
 		HOOK_FUNCTION _draw_split_screen_window_bars, Hook__draw_split_screen_window_bars
+		HOOK_FUNCTION _get_camera_field_of_view, Hook__get_camera_field_of_view
 
 		; Install triple buffering hooks if enabled.
 		cmp		byte [Hack_TripleBufferingEnabled], 1
@@ -1334,6 +1332,18 @@ _Hook__draw_split_screen_window_bars_exit:
 		%undef RectBounds
 		%undef StackStart
 		%undef StackSize
+		
+		align 4, db 0
+		
+	;---------------------------------------------------------
+	; void Hook__get_camera_field_of_view() -> Use custom field of view value
+	;---------------------------------------------------------
+_Hook__get_camera_field_of_view:
+
+		; Use user defined field of view.
+		push	dword [Cfg_FieldOfView]
+		call	_Util_DegreesToRadians
+		ret
 		
 		align 4, db 0
 		

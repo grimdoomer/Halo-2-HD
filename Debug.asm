@@ -1,5 +1,11 @@
 
 
+HACK_DATA Dbg_FpsCounterFormatString
+HACK_DATA Dbg_GpuClkFormatString
+HACK_DATA Dbg_GpuLoadFormatString
+HACK_DATA Dbg_GpuClkMulDiv
+
+
 	;---------------------------------------------------------
 	; void Dbg_DrawPerfCounters()
 	;---------------------------------------------------------

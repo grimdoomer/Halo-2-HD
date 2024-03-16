@@ -68,5 +68,6 @@ HACK_FUNCTION Util_ResolveKernelImports
 HACK_FUNCTION Util_GetMemoryCapacity
 HACK_FUNCTION Util_SetFanSpeed
 HACK_FUNCTION Util_OverclockGPU
+HACK_FUNCTION Util_DegreesToRadians
 
 %endif ; _UTILITIES_H
