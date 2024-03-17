@@ -59,8 +59,6 @@ ASSERT_STRUCT_SIZE RECT, 8
 
 %define _initialize_standard_texture_cache			0012C1E0h
 
-%define _get_camera_field_of_view					00187130h
-
 %define rasterizer_globals_screen_bounds_y0			00485A8Ah	; WORD
 %define rasterizer_globals_screen_bounds_x0			00485A8Ch	; WORD
 %define rasterizer_globals_screen_bounds_y1			00485A8Eh	; WORD
@@ -74,6 +72,8 @@ ASSERT_STRUCT_SIZE RECT, 8
 %define _g_refresh_rate_hz							00485AC0h	; WORD
 %define _g_widescreen_enabled						00485AC2h	; BYTE
 %define _g_progressive_scan_enabled					00485AC6h	; BYTE
+
+%define g_camera_fov_scale							0047136Ch	; float
 
 %define global_d3d_device							005093B0h	; IDirect3DDevice8*
 
@@ -147,7 +147,6 @@ HACK_FUNCTION Hook_create_render_target_helper
 HACK_FUNCTION Hook_should_render_screen_effect
 HACK_FUNCTION Hook__fog_build_vertex_element
 HACK_FUNCTION Hook__draw_split_screen_window_bars
-HACK_FUNCTION Hook__get_camera_field_of_view
 
 HACK_FUNCTION Hook__initialize_geometry_cache
 HACK_FUNCTION Hook__geometry_cache_globals_cleanup
@@ -357,7 +356,13 @@ _Hack_InitHacks:
 		HOOK_FUNCTION 0001DC40h, Hook_create_render_target_helper
 		HOOK_FUNCTION 00022726h, Hook_should_render_screen_effect
 		HOOK_FUNCTION _draw_split_screen_window_bars, Hook__draw_split_screen_window_bars
-		HOOK_FUNCTION _get_camera_field_of_view, Hook__get_camera_field_of_view
+		
+		; Calculate fov scale.
+		movss	xmm0, dword [Cfg_FieldOfView]
+		mov		eax, 70
+		cvtsi2ss	xmm1, eax
+		divss	xmm0, xmm1
+		movss	dword [g_camera_fov_scale], xmm0
 
 		; Install triple buffering hooks if enabled.
 		cmp		byte [Hack_TripleBufferingEnabled], 1
@@ -1332,18 +1337,6 @@ _Hook__draw_split_screen_window_bars_exit:
 		%undef RectBounds
 		%undef StackStart
 		%undef StackSize
-		
-		align 4, db 0
-		
-	;---------------------------------------------------------
-	; void Hook__get_camera_field_of_view() -> Use custom field of view value
-	;---------------------------------------------------------
-_Hook__get_camera_field_of_view:
-
-		; Use user defined field of view.
-		push	dword [Cfg_FieldOfView]
-		call	_Util_DegreesToRadians
-		ret
 		
 		align 4, db 0
 		
