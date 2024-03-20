@@ -154,9 +154,12 @@ HACK_FUNCTION Hook__initialize_standard_texture_cache
 HACK_FUNCTION Hook__texture_cache_globals_cleanup
 HACK_FUNCTION Hack_PhysicalMemoryAlloc
 HACK_FUNCTION Hack_PhysicalMemoryFree
+HACK_FUNCTION Hack_ColdRebootConsole
 
 HACK_FUNCTION HalReadWritePCISpace
+HACK_FUNCTION HalReturnToFirmware
 HACK_FUNCTION HalWriteSMBusValue
+HACK_FUNCTION KeGetCurrentIrql
 HACK_FUNCTION KeStallExecutionProcessor
 HACK_FUNCTION MmAllocateContiguousMemoryEx
 HACK_FUNCTION MmFreeContiguousMemory
@@ -356,6 +359,13 @@ _Hack_InitHacks:
 		HOOK_FUNCTION 0001DC40h, Hook_create_render_target_helper
 		HOOK_FUNCTION 00022726h, Hook_should_render_screen_effect
 		HOOK_FUNCTION _draw_split_screen_window_bars, Hook__draw_split_screen_window_bars
+		HOOK_FUNCTION IDirect3DDevice8_Swap, Hook_IDirect3DDevice8_Swap
+		
+		; Hook HalReturnToFirmware so that any attempt to quit the game results in a cold reboot of the console.
+		; Due to how we hot patch the kernel (in 128MB mode) the console is basically "hosed" after running the game. Any attempt
+		; to run another executable, return to dash, IRG, etc, will result in graphical artifacting and the console freezing.
+		; If the console doesn't have extra RAM but the user overclocks the GPU we want to reset that as well.
+		HOOK_FUNCTION dword [HalReturnToFirmware], Hack_ColdRebootConsole
 		
 		; Calculate fov scale.
 		movss	xmm0, dword [Cfg_FieldOfView]
@@ -363,13 +373,6 @@ _Hack_InitHacks:
 		cvtsi2ss	xmm1, eax
 		divss	xmm0, xmm1
 		movss	dword [g_camera_fov_scale], xmm0
-
-		; Install triple buffering hooks if enabled.
-		cmp		byte [Hack_TripleBufferingEnabled], 1
-		jnz		.disable_fog
-
-			; Hook d3d swap function to rotate back buffers.
-			HOOK_FUNCTION IDirect3DDevice8_Swap, Hook_IDirect3DDevice8_Swap
 			
 .disable_fog:
 
@@ -493,45 +496,49 @@ _Hook_IDirect3DDevice8_Swap_reentry:
 		cmp		dword [Hack_RasterizerTargetsInitialized], 0
 		jz		_Hook_IDirect3DDevice8_Swap_exit
 		
-		; Release references to the back buffer from the previous frame.
-		push	esi
-		push	dword [global_d3d_surface_render_primary_0]
-		mov		esi, D3DResource_Release
-		call	esi
+			; Check if triple buffering is enabled and if so handle triple buffering specific state.
+			cmp		byte [Hack_TripleBufferingEnabled], 1
+			jnz		_Hook_IDirect3DDevice8_Swap_exit
 		
-		push	dword [global_d3d_surface_render_primary_1]
-		call	esi
-		
-		; Normally the game is only double buffered and it can utilize the front buffer as a temporary render target
-		; for depth of field techniques. However, when triple buffering is enabled the front buffer can be swapped out
-		; any time a vblank interval occurs and the next frame is already queued. This causes a flickering effect
-		; on anything that uses depth of field passes with the front buffer as one of the targets. To prevent this
-		; we update global_d3d_surface_render_primary_0/1 on every swap to point to the active back buffer. This lets
-		; the game reference the correct back buffer in the swap chain and "cancels" out any depth of field passes in
-		; exchange for eliminating the flickering effect.
-		
-		; Update addresses for back and front buffer globals. Note that IDirect3DDevice8_GetBackBuffer will increment
-		; the ref count on the back buffer surfaces we retrieve which is why we release the reference to the previously
-		; acquired back buffer surfaces above.
-		push	0
-		mov		esi, IDirect3DDevice8_GetBackBuffer
-		call	esi
-		mov		dword [global_d3d_surface_render_primary_0], eax
-		
-		push	0
-		call	esi
-		mov		dword [global_d3d_surface_render_primary_1], eax
-		
-		; Update the buffer addresses for all render targets based on the front and back buffer.
-		mov		esi, dword [global_d3d_surface_render_primary_0]
-		mov		esi, dword [esi+4]						; pBackBufferSurface->Data
-		
-		mov		eax, dword [global_d3d_texture_render_primary_0]
-		mov		dword [eax+4], esi						; global_d3d_texture_render_primary_0->Data = pBackBufferSurface->Data
-		
-		mov		eax, dword [global_d3d_texture_render_primary_1]
-		mov		dword [eax+4], esi						; global_d3d_texture_render_primary_1->Data = global_d3d_surface_render_primary_1->Data
-		pop		esi
+				; Release references to the back buffer from the previous frame.
+				push	esi
+				push	dword [global_d3d_surface_render_primary_0]
+				mov		esi, D3DResource_Release
+				call	esi
+				
+				push	dword [global_d3d_surface_render_primary_1]
+				call	esi
+				
+				; Normally the game is only double buffered and it can utilize the front buffer as a temporary render target
+				; for depth of field techniques. However, when triple buffering is enabled the front buffer can be swapped out
+				; any time a vblank interval occurs and the next frame is already queued. This causes a flickering effect
+				; on anything that uses depth of field passes with the front buffer as one of the targets. To prevent this
+				; we update global_d3d_surface_render_primary_0/1 on every swap to point to the active back buffer. This lets
+				; the game reference the correct back buffer in the swap chain and "cancels" out any depth of field passes in
+				; exchange for eliminating the flickering effect.
+				
+				; Update addresses for back and front buffer globals. Note that IDirect3DDevice8_GetBackBuffer will increment
+				; the ref count on the back buffer surfaces we retrieve which is why we release the reference to the previously
+				; acquired back buffer surfaces above.
+				push	0
+				mov		esi, IDirect3DDevice8_GetBackBuffer
+				call	esi
+				mov		dword [global_d3d_surface_render_primary_0], eax
+				
+				push	0
+				call	esi
+				mov		dword [global_d3d_surface_render_primary_1], eax
+				
+				; Update the buffer addresses for all render targets based on the front and back buffer.
+				mov		esi, dword [global_d3d_surface_render_primary_0]
+				mov		esi, dword [esi+4]						; pBackBufferSurface->Data
+				
+				mov		eax, dword [global_d3d_texture_render_primary_0]
+				mov		dword [eax+4], esi						; global_d3d_texture_render_primary_0->Data = pBackBufferSurface->Data
+				
+				mov		eax, dword [global_d3d_texture_render_primary_1]
+				mov		dword [eax+4], esi						; global_d3d_texture_render_primary_1->Data = global_d3d_surface_render_primary_1->Data
+				pop		esi
 		
 _Hook_IDirect3DDevice8_Swap_exit:
 
@@ -1642,6 +1649,67 @@ _Hack_PatchMaxPFN_exit:
 		align 4, db 0
 		
 	;---------------------------------------------------------
+	; void Hack_ColdRebootConsole() -> Cold reboot the console when any other executable is launched
+	;---------------------------------------------------------
+_Hack_ColdRebootConsole:
+
+		; If a custom fan speed was used change it back to normal.
+		cmp		dword [Cfg_OverrideFanSpeed], 0
+		jz		.check_irql
+		
+			; Set the fan speed back to stock.
+			push	10								; fan speed
+			push	0
+			push	6								; SMC_COMMAND_REQUEST_FAN_SPEED
+			push	20h								; SMC_SLAVE_ADDRESS
+			call	dword [HalWriteSMBusValue]
+			
+			; Give the SMC a chance to process the message, if not it can panic.
+			push	100*1000						; 100ms
+			call	dword [KeStallExecutionProcessor]
+		
+			; Set SMC fan mode to use stock speed (this doesn't seem to work if the override speed is still set).
+			push	0								; SMC_FAN_OVERRIDE_DEFAULT
+			push	0
+			push	5								; SMC_COMMAND_FAN_OVERRIDE
+			push	20h								; SMC_SLAVE_ADDRESS
+			call	dword [HalWriteSMBusValue]
+			
+			; Give the SMC a chance to process the message, if not it can panic.
+			push	100*1000						; 100ms
+			call	dword [KeStallExecutionProcessor]
+			
+.check_irql:
+
+		; Check IRQL level to see if we can use HalWriteSMBusValue and if so have the SMC do a full reset for us.
+		call	dword [KeGetCurrentIrql]
+		cmp		eax, 2									; if (KeGetCurrentIrql < DISPATCH_LEVEL)
+		jnb		.do_pci_reset
+		
+			; Have the SMC do a full reset.
+			push	1									; SMC_RESET_ASSERT_RESET
+			push	0									; FALSE
+			push	2									; SMC_COMMAND_RESET
+			push	20h									; SMC_SLAVE_ADDRESS
+			call	dword [HalWriteSMBusValue]
+		
+.do_pci_reset:
+
+		; Perform full PCI reset.
+		mov		dx, 0CF9h				; RESET_CONTROL_REGISTER
+		mov		al, 0Eh					; RESET_CONTROL_FULL_RESET | RESET_CONTROL_RESET_CPU | RESET_CONTROL_SYSTEM_RESET
+		out		dx, al
+		
+.halt:
+		
+		; Halt the CPU and wait for the reboot, thanks for playing...
+		cli
+		hlt
+		jmp		.halt
+		
+		align 4, db 0
+		
+	;---------------------------------------------------------
 	; void _crc32_calculate_stdcall(int* checksum, unsigned char* buffer, int length) -> stub for fastcall version of _crc32_calculate_opt
 	;---------------------------------------------------------
 _crc32_calculate_stdcall:
@@ -1695,7 +1763,9 @@ _crc32_calculate_stdcall:
 		
 _Util_KernelImports:
 		_HalReadWritePCISpace				dd 46
+		_HalReturnToFirmware				dd 49
 		_HalWriteSMBusValue					dd 50
+		_KeGetCurrentIrql					dd 103
 		_KeStallExecutionProcessor			dd 151
 		_MmAllocateContiguousMemoryEx		dd 166
 		_MmFreeContiguousMemory				dd 171
