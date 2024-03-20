@@ -791,6 +791,7 @@ _Cfg_ConfigFileOptionTable:
 	
 	; Gameplay options:
 	CFG_OPTION _Cfg_FieldOfView, 0x6ab10407, CFG_TYPE_FLOAT, __?float32?__(70.0)
+	CFG_OPTION _Cfg_SplitScreenFavor, 0xc156d0a4, CFG_TYPE_INT, 2
 	
 	; Misc options:
 	CFG_OPTION _Cfg_DebugMode, 0x611da1be, CFG_TYPE_BOOL, 0

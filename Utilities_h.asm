@@ -60,6 +60,31 @@
 	%endif
 %endmacro
 
+; Macro for clamping a register to a range:
+;
+; CLAMP <register>, <lower>, <upper>
+%macro CLAMP 3
+	
+	; if (val < lower)
+	cmp		%1, %2
+	jge		%%upper
+	
+		; val = lower
+		mov		%1, %2
+	
+%%upper:
+
+	; if (val > upper)
+	cmp		%1, %3
+	jle		%%done
+	
+		; val = upper
+		mov		%1, %3
+		
+%%done:
+	
+%endmacro
+
 
 ; Functions implemented in Utilities.asm:
 HACK_FUNCTION Util_InstallHook

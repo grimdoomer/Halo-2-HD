@@ -147,6 +147,7 @@ HACK_FUNCTION Hook_create_render_target_helper
 HACK_FUNCTION Hook_should_render_screen_effect
 HACK_FUNCTION Hook__fog_build_vertex_element
 HACK_FUNCTION Hook__draw_split_screen_window_bars
+HACK_FUNCTION Hook__renderer_setup_player_windows
 
 HACK_FUNCTION Hook__initialize_geometry_cache
 HACK_FUNCTION Hook__geometry_cache_globals_cleanup
@@ -192,6 +193,7 @@ HACK_DATA Cfg_Enable1080iSupport
 HACK_DATA Cfg_DisableAnamorphicScaling
 HACK_DATA Cfg_DisableAtmosphericFog
 HACK_DATA Cfg_FieldOfView
+HACK_DATA Cfg_SplitScreenFavor
 HACK_DATA Cfg_DebugMode
 HACK_DATA Cfg_OverclockGPU
 HACK_DATA Cfg_GPUOverclockStep
@@ -359,6 +361,7 @@ _Hack_InitHacks:
 		HOOK_FUNCTION 0001DC40h, Hook_create_render_target_helper
 		HOOK_FUNCTION 00022726h, Hook_should_render_screen_effect
 		HOOK_FUNCTION _draw_split_screen_window_bars, Hook__draw_split_screen_window_bars
+		HOOK_FUNCTION 00223564h, Hook__renderer_setup_player_windows
 		HOOK_FUNCTION IDirect3DDevice8_Swap, Hook_IDirect3DDevice8_Swap
 		
 		; Hook HalReturnToFirmware so that any attempt to quit the game results in a cold reboot of the console.
@@ -583,6 +586,10 @@ _Hook__rasterizer_init_screen_bounds:
 		mov		dword [esp+StackSize+ScreenWidth], 640
 		mov		dword [esp+StackSize+ScreenHeight], 480
 		
+		; If widescreen is not enabled on the console force 640x480 or d3d init will fail.
+		cmp		byte [_g_widescreen_enabled], 0
+		jz		.set_screen_bounds
+		
 		; Get the video flags and set the screen size based on video mode.
 		mov		eax, XGetVideoFlags
 		call	eax
@@ -598,30 +605,30 @@ _Hook__rasterizer_init_screen_bounds:
 		
 		; Check video flags and set the screen size based on video mode
 		test	eax, 4					; if ((videoFlags & XC_VIDEO_FLAGS_HDTV_1080i) != 0)
-		jnz		_video_mode_1080i
+		jnz		.video_mode_1080i
 		test	eax, 2					; if ((videoFlags & XC_VIDEO_FLAGS_HDTV_720p) != 0)
-		jnz		_video_mode_720p
+		jnz		.video_mode_720p
 		test	eax, 8					; if ((videoFlags & XC_VIDEO_FLAGS_HDTV_480p) == 0)
-		jz		_video_mode_end
+		jz		.video_mode_end
 		
 			; Resolution is 480p
 			mov		dword [esp+StackSize+ScreenWidth], 720
-			jmp		_video_mode_end
+			jmp		.video_mode_end
 		
-_video_mode_1080i:
+.video_mode_1080i:
 
 			; Resolution is 1080i
 			mov		dword [esp+StackSize+ScreenWidth], 1920
 			mov		dword [esp+StackSize+ScreenHeight], 1080
-			jmp		_video_mode_end
+			jmp		.video_mode_end
 		
-_video_mode_720p:
+.video_mode_720p:
 
 			; Resolution is 720p
 			mov		dword [esp+StackSize+ScreenWidth], 1280
 			mov		dword [esp+StackSize+ScreenHeight], 720
 
-_video_mode_end:
+.video_mode_end:
 
 		; If the console doesn't have a RAM upgrade force a max resolution of 480p. There's
 		; no point in trying to go any higher because it won't work anyway.
@@ -1248,7 +1255,7 @@ _Hook__draw_split_screen_window_bars:
 		
 		; Check the screen split mode.
 		lea		ecx, [esp+StackSize+RectBounds]
-		cmp		dword [004BA048h], 0
+		cmp		dword [004BA048h], 1
 		jnz		_Hook__draw_split_screen_window_bars_mode_1_2
 		
 			; Mode 0: draw vertical split
@@ -1344,6 +1351,34 @@ _Hook__draw_split_screen_window_bars_exit:
 		%undef RectBounds
 		%undef StackStart
 		%undef StackSize
+		
+		align 4, db 0
+		
+	;---------------------------------------------------------
+	; Hook__renderer_setup_player_windows -> Allow customization of split screen favor (horizontal vs vertical split)
+	;---------------------------------------------------------
+_Hook__renderer_setup_player_windows:
+
+		; Check if widescreen mode is enabled.
+		cmp		byte [_g_widescreen_enabled], 0
+		jnz		.widescreen_enabled
+		
+			; Use default setting (horizontal split).
+			mov		dword [esp+10h], 1
+			jmp		.exit
+		
+.widescreen_enabled:
+
+		; Use value specified by config file.
+		mov		eax, dword [Cfg_SplitScreenFavor]
+		CLAMP	eax, 1, 2
+		mov		dword [esp+10h], eax
+
+.exit:
+
+		; Return to function.
+		push	00223585h
+		ret
 		
 		align 4, db 0
 		
