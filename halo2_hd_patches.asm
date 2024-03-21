@@ -57,6 +57,8 @@ ASSERT_STRUCT_SIZE RECT, 8
 
 %define _draw_split_screen_window_bars				0013E635h
 
+%define _should_draw_player_hud						0013939Bh
+
 %define _initialize_standard_texture_cache			0012C1E0h
 
 %define rasterizer_globals_screen_bounds_y0			00485A8Ah	; WORD
@@ -148,6 +150,7 @@ HACK_FUNCTION Hook_should_render_screen_effect
 HACK_FUNCTION Hook__fog_build_vertex_element
 HACK_FUNCTION Hook__draw_split_screen_window_bars
 HACK_FUNCTION Hook__renderer_setup_player_windows
+HACK_FUNCTION Hook__should_draw_player_hud
 
 HACK_FUNCTION Hook__initialize_geometry_cache
 HACK_FUNCTION Hook__geometry_cache_globals_cleanup
@@ -190,10 +193,12 @@ HACK_DATA Cfg_ConfigFilePath
 
 
 HACK_DATA Cfg_Enable1080iSupport
+HACK_DATA Cfg_Enable720pSupport
 HACK_DATA Cfg_DisableAnamorphicScaling
 HACK_DATA Cfg_DisableAtmosphericFog
 HACK_DATA Cfg_FieldOfView
 HACK_DATA Cfg_SplitScreenFavor
+HACK_DATA Cfg_DisableHud
 HACK_DATA Cfg_DebugMode
 HACK_DATA Cfg_OverclockGPU
 HACK_DATA Cfg_GPUOverclockStep
@@ -376,6 +381,13 @@ _Hack_InitHacks:
 		cvtsi2ss	xmm1, eax
 		divss	xmm0, xmm1
 		movss	dword [g_camera_fov_scale], xmm0
+		
+		; Check if we should disable the HUD.
+		cmp		dword [Cfg_DisableHud], 1
+		jnz		.disable_fog
+		
+			; Hook the should draw hud function and always disable it.
+			HOOK_FUNCTION _should_draw_player_hud, Hook__should_draw_player_hud
 			
 .disable_fog:
 
@@ -596,10 +608,19 @@ _Hook__rasterizer_init_screen_bounds:
 		
 		; Check if 1080i is disabled and mask out the flag value if so.
 		cmp		byte [Cfg_Enable1080iSupport], 0
-		jnz		.check_video_mode
+		jnz		.check_720p_disable
 		
 			; Mask out 1080i video flag.
 			and		eax, ~4				; flags &= ~XC_VIDEO_FLAGS_HDTV_1080i
+			
+.check_720p_disable:
+			
+		; Check if 720p is disabled and mask out the flag if so.
+		cmp		byte [Cfg_Enable720pSupport], 0
+		jnz		.check_video_mode
+		
+			; Mask out 720p video flag.
+			and		eax, ~2				; flags &= ~XC_VIDEO_FLAGS_HDTV_720p
 		
 .check_video_mode:
 		
@@ -1378,6 +1399,17 @@ _Hook__renderer_setup_player_windows:
 
 		; Return to function.
 		push	00223585h
+		ret
+		
+		align 4, db 0
+		
+	;---------------------------------------------------------
+	; Hook__should_draw_player_hud -> Disable player HUD
+	;---------------------------------------------------------
+_Hook__should_draw_player_hud:
+
+		; Disable HUD.
+		xor		al, al
 		ret
 		
 		align 4, db 0

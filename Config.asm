@@ -784,6 +784,7 @@ _Cfg_ConfigFileOptionTable:
 	
 	; Video options:
 	CFG_OPTION _Cfg_Enable1080iSupport, 0x4b51a48c, CFG_TYPE_BOOL, 0
+	CFG_OPTION _Cfg_Enable720pSupport, 0x3f060ff9, CFG_TYPE_BOOL, 1
 	
 	; Rendering options:
 	CFG_OPTION _Cfg_DisableAnamorphicScaling, 0xc6f838a8, CFG_TYPE_BOOL, 1
@@ -792,6 +793,7 @@ _Cfg_ConfigFileOptionTable:
 	; Gameplay options:
 	CFG_OPTION _Cfg_FieldOfView, 0x6ab10407, CFG_TYPE_FLOAT, __?float32?__(70.0)
 	CFG_OPTION _Cfg_SplitScreenFavor, 0xc156d0a4, CFG_TYPE_INT, 2
+	CFG_OPTION _Cfg_DisableHud, 0x1b9786a1, CFG_TYPE_BOOL, 0
 	
 	; Misc options:
 	CFG_OPTION _Cfg_DebugMode, 0x611da1be, CFG_TYPE_BOOL, 0
