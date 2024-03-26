@@ -524,13 +524,12 @@ _Hook_IDirect3DDevice8_Swap_reentry:
 				push	dword [global_d3d_surface_render_primary_1]
 				call	esi
 				
-				; Normally the game is only double buffered and it can utilize the front buffer as a temporary render target
-				; for depth of field techniques. However, when triple buffering is enabled the front buffer can be swapped out
-				; any time a vblank interval occurs and the next frame is already queued. This causes a flickering effect
-				; on anything that uses depth of field passes with the front buffer as one of the targets. To prevent this
-				; we update global_d3d_surface_render_primary_0/1 on every swap to point to the active back buffer. This lets
-				; the game reference the correct back buffer in the swap chain and "cancels" out any depth of field passes in
-				; exchange for eliminating the flickering effect.
+				; The game stores pointers to the back and front buffer in global_d3d_surface_render_primary[0]/[1] respectively,
+				; and will swap them each frame. When triple buffering is enabled this will produce a flickering effect for 
+				; anything that uses depth of field effects due to using the incorrect back buffer as an input texture. To work around
+				; this we update global_d3d_surface_render_primary[0]/[1] to both point to the current back buffer after Swap completes.
+				; The game will still try and swap these pointers later but it doesn't matter since they point to the same underlying
+				; memory. This ensures the correct back buffer is always used for depth of field effects.
 				
 				; Update addresses for back and front buffer globals. Note that IDirect3DDevice8_GetBackBuffer will increment
 				; the ref count on the back buffer surfaces we retrieve which is why we release the reference to the previously
@@ -1866,7 +1865,11 @@ _Hack_RasterizerTargetsInitialized:
 		
 _Hack_HasRAMUpgrade:				db 0
 _Hack_TripleBufferingEnabled:		db 0
-_Hack_DisableZCompress:				db 1
+
+; Initially I thought that disabling depth buffer compression was increasing performance, and maybe it was without GPU overclocking... But
+; in later OC tests I discovered that memory bandwidth seems to be the bottleneck and leaving depth buffer compression enabled actually
+; helps performance by ~1 FPS.
+_Hack_DisableZCompress:				db 0
 
 		align 4, db 0
 		
