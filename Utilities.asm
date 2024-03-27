@@ -1,5 +1,6 @@
 
 %include "Utilities_h.asm"
+%include "XboxKrnl_h.asm"
 
 
 %ifdef UTILINC_lstrcpyA
@@ -528,6 +529,305 @@ _Util_DegreesToRadians:
 		align 4, db 0
 		
 		%undef Value
+		
+;---------------------------------------------------------
+; bool Util_AtaIdentify(BYTE* pIdentifyData)
+;---------------------------------------------------------
+_Util_AtaIdentify:
+
+		HACK_DATA Util_HddDevicePath
+
+		%define StackSize			3Ch
+		%define StackStart			34h
+		%define Result				-34h
+		%define DevicePath			-30h
+		%define ObjAttr				-28h
+		%define IoStatus			-1Ch
+		%define hHdd				-14h
+		%define AtaRequest			-10h
+		%define pIdentifyData		4h
+		
+		; Setup stack frame.
+		sub		esp, StackStart
+		push	ecx
+		push	edi
+		
+		mov		dword [esp+StackSize+Result], 0					; Result = false
+		
+		; Zero-init buffers.
+		cld
+		xor		eax, eax
+		mov		ecx, 512
+		mov		edi, dword [esp+StackSize+pIdentifyData]
+		rep stosb												; memset(pIdentifyData, 0, 512)
+		
+		mov		ecx, ATA_PASS_THROUGH_EX_size
+		lea		edi, [esp+StackSize+AtaRequest]
+		rep stosb												; memset(&AtaRequest, 0, sizeof(AtaRequest))
+		
+		mov		dword [esp+StackSize+hHdd], 0					; hHdd = NULL
+		
+		; Initialize the hdd device path.
+		push	Util_HddDevicePath
+		lea		eax, dword [esp+StackSize+DevicePath+4]
+		push	eax
+		call	dword [RtlInitAnsiString]						; RtlInitAnsiString(&DevicePath, Util_HddDevicePath)
+		
+		; Setup object attributes.
+		lea		eax, dword [esp+StackSize+DevicePath]
+		lea		ecx, dword [esp+StackSize+ObjAttr]
+		mov		dword [ecx+OBJECT_ATTRIBUTES.Attributes], 0
+		mov		dword [ecx+OBJECT_ATTRIBUTES.RootDirectory], 0
+		mov		dword [ecx+OBJECT_ATTRIBUTES.ObjectName], eax
+		
+		; Open the HDD for raw device access.
+		push	0												; OpenOptions
+		push	FILE_SHARE_READ | FILE_SHARE_WRITE				; ShareAccess
+		lea		eax, dword [esp+StackSize+IoStatus+8]
+		push	eax												; IoStatusBlock
+		push	ecx												; ObjectAttributes
+		push	GENERIC_READ | GENERIC_WRITE | SYNCHRONIZE		; DesiredAccess
+		lea		eax, dword [esp+StackSize+hHdd+20]
+		push	eax												; FileHandle
+		call	dword [NtOpenFile]
+		test	eax, eax
+		jnz		.cleanup
+		
+		; Setup the ATA request.
+		lea		ecx, dword [esp+StackSize+AtaRequest]
+		mov		byte [ecx+ATA_PASS_THROUGH_EX.IdeReg+IDEREGS.bCommandReg], ATA_CMD_IDENTIFY
+		mov		eax, dword [esp+StackSize+pIdentifyData]
+		mov		dword [ecx+ATA_PASS_THROUGH_EX.DataBuffer], eax
+		mov		dword [ecx+ATA_PASS_THROUGH_EX.DataBufferSize], 512
+		
+		; Submit the passthrough IOCTL request.
+		push	ATA_PASS_THROUGH_EX_size						; Output buffer length
+		push	ecx												; Output buffer
+		push	ATA_PASS_THROUGH_EX_size						; Input buffer length
+		push	ecx												; Input buffer
+		push	IOCTL_IDE_PASS_THROUGH							; IOCTL code
+		lea		eax, dword [esp+StackSize+IoStatus+20]
+		push	eax												; IoStatusBlock
+		push	0												; APC context
+		push	0												; APC routine
+		push	0												; Event
+		push	dword [esp+StackSize+hHdd+36]					; File handle
+		call	dword [NtDeviceIoControlFile]
+		test	eax, eax
+		jz		.check_data
+		
+		; Check the status code.
+		cmp		eax, STATUS_PENDING								; if (Status == STATUS_PENDING)
+		jnz		.cleanup
+		
+			; Wait for the operation to complete.
+			push	0
+			push	0
+			push	dword [esp+StackSize+hHdd+8]
+			call	dword [NtWaitForSingleObject]				; Status = WaitForSingleObject(hHdd, FALSE, NULL)
+			test	eax, eax									; if (Status != STATUS_SUCCESS)
+			jnz		.cleanup
+			
+				; Check the operation result.
+				mov		eax, dword [esp+StackSize+IoStatus+IO_STATUS_BLOCK.Status]		; Status = IoStatus.Status
+				test	eax, eax														; if (Status != STATUS_SUCCESS)
+				jnz		.cleanup
+				
+.check_data:
+
+		; Operation completed successfully.
+		mov		dword [esp+StackSize+Result], 1
+		
+.cleanup:
+
+		; Check if the file handle needs to be closed.
+		cmp		dword [esp+StackSize+hHdd], 0
+		jz		.exit
+		
+			; Close the file handle.
+			push	dword [esp+StackSize+hHdd]
+			call	dword [NtClose]
+			
+.exit:
+
+		; Cleanup stack frame.
+		mov		eax, dword [esp+StackSize+Result]
+		pop		edi
+		pop		ecx
+		add		esp, StackStart
+		ret 4
+		
+		align 4, db 0
+		
+		%undef pIdentifyData
+		%undef AtaRequest
+		%undef hHdd
+		%undef IoStatus
+		%undef ObjAttr
+		%undef DevicePath
+		%undef Result
+		%undef StackStart
+		%undef StackSize
+		
+_Util_HddDevicePath:
+		db `\\Device\\Harddisk0\\Partition0`,0
+		align 4, db 0
+		
+;---------------------------------------------------------
+; bool Util_WaitForHddReady(int* pStatus)
+;---------------------------------------------------------
+_Util_WaitForHddReady:
+
+		%define pStatus				4h
+
+		; Setup stack frame.
+		push	edx
+		push	esi
+		push	edi
+		
+		; Wait up to 1 second for the HDD to become ready.
+		mov		esi, 10000
+		mov		edi, dword [esp+pStatus]
+		
+.loop:
+		; Check if the HDD is still busy.
+		INP		ATA_STATUS_REGISTER
+		movzx	eax, al
+		mov		dword [edi], eax						; *pStatus = INP(ATA_STATUS_REGISTER)
+		test	al, 080h								; if ((*pStatus & 0x80) == 0)
+		jz		.ready
+		
+		; Stall for a bit.
+		push	100
+		call	dword [KeStallExecutionProcessor]
+		
+		; Next iteration.
+		dec		esi
+		jnz		.loop
+		
+		; HDD did not ready up in time.
+		xor		eax, eax								; return false
+		jmp		.exit
+		
+.ready:
+
+		mov		eax, 1									; return true
+		
+.exit:
+		; Cleanup stack frame.
+		pop		edi
+		pop		esi
+		pop		edx
+		ret 4
+		
+		align 4, db 0
+		
+		%undef pStatus
+		
+;---------------------------------------------------------
+; bool Util_HddSetTransferSpeed(int mode)
+;---------------------------------------------------------
+_Util_HddSetTransferSpeed:
+
+		%define StackSize			214h
+		%define StackStart			20Ch
+		%define Result				-20Ch
+		%define Status				-208h
+		%define OldIrql				-204h
+		%define IdentifyData		-200h
+		%define Mode				4h
+		
+		; Setup stack frame.
+		sub		esp, StackStart
+		push	ecx
+		push	esi
+		
+		mov		dword [esp+StackSize+Result], 0
+		
+		; Get the ATA_IDENTIFY data from the device.
+		lea		esi, dword [esp+StackSize+IdentifyData]
+		push	esi
+		call	_Util_AtaIdentify
+		test	eax, eax
+		jz		.exit
+		
+		; Get the highest UDMA mode supported.
+		mov		ecx, 7
+		
+.mode_loop:									; for (int i = 7; i >= 0; i--)
+		mov		eax, 1
+		shl		eax, cl
+		test	dword [esi+0B0h], eax		;	if ((IdentifyData.UltraDMASupport & (1 << eax)) != 0)
+		jnz		.mode_found
+		dec		ecx
+		jnz		.mode_loop
+		
+.mode_found:
+
+		; Make sure we don't exceed the highest UDMA mode supported.
+		CLAMP	dword [esp+StackSize+Mode], 2, ecx
+			
+.set_mode:
+
+		; Raise IRQL level to surpress any interrupts that might occur while changing device speed.
+		mov		esi, dword [IdexChannelObject]
+		add		esi, 18h								; pIdeChannelIrql = _IdexChannelObject + 0x18
+		mov		cl, byte [esi]							; *pIdeChannelIrql
+		call	dword [KfRaiseIrql]
+		mov		byte [esp+StackSize+OldIrql], al
+		
+		; Select the HDD device.
+		OUTP	ATA_DEVICE_SELECT_REGISTER, 0A0h
+		
+		; Wait until the device is ready.
+		lea		eax, dword [esp+StackSize+Status]
+		push	eax
+		call	_Util_WaitForHddReady
+		test	eax, eax
+		jz		.lower_irql
+		
+		; Set the transfer mode and speed.
+		OUTP	ATA_ERROR_REGISTER, 03h
+		add		dword [esp+StackSize+Mode], 040h
+		OUTP	ATA_SECTOR_COUNT_REGISTER, byte [esp+StackSize+Mode]
+		OUTP	ATA_COMMAND_REGISTER, 0EFh
+		
+		; Wait until the hdd is ready.
+		lea		eax, dword [esp+StackSize+Status]
+		push	eax
+		call	_Util_WaitForHddReady
+		test	eax, eax
+		jz		.lower_irql
+		
+		; Check HDD status for errors.
+		test	dword [esp+StackSize+Status], 1
+		jnz		.lower_irql
+		
+		mov		dword [esp+StackSize+Result], 1
+		
+.lower_irql:
+
+		; Restore old IRQL level.
+		mov		cl, byte[esp+StackSize+OldIrql]
+		call	dword [KfLowerIrql]
+		
+.exit:
+		; Cleanup stack frame.
+		mov		eax, dword [esp+StackSize+Result]
+		pop		esi
+		pop		ecx
+		add		esp, StackStart
+		ret 4
+		
+		align 4, db 0
+		
+		%undef Mode
+		%undef IdentifyData
+		%undef OldIrql
+		%undef Status
+		%undef Result
+		%undef StackStart
+		%undef StackSize
 		
 		
 		

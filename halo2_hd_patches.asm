@@ -121,6 +121,16 @@ ASSERT_STRUCT_SIZE RECT, 8
 %define atoi64										00321740h	; __cdecl
 %define snwprintf									00320725h	; __cdecl
 
+; Kernel imports:
+%define NtOpenFile									00411574h
+%define NtClose										00411544h
+%define NtDeviceIoControlFile						004115D8h
+%define NtWaitForSingleObject						004115C8h
+%define RtlInitAnsiString							00411540h
+%define KfRaiseIrql									004116C8h	; __fastcall
+%define KfLowerIrql									00411618h	; __fastcall
+%define IdexChannelObject							00411630h
+
 ; Utility functions to compile in:
 UTIL_INCLUDE lstrcpyA
 UTIL_INCLUDE atof
@@ -200,6 +210,8 @@ HACK_DATA Cfg_FieldOfView
 HACK_DATA Cfg_SplitScreenFavor
 HACK_DATA Cfg_DisableHud
 HACK_DATA Cfg_DebugMode
+HACK_DATA Cfg_SetHddSpeed
+HACK_DATA Cfg_HddSpeed
 HACK_DATA Cfg_OverclockGPU
 HACK_DATA Cfg_GPUOverclockStep
 HACK_DATA Cfg_OverrideFanSpeed
@@ -211,11 +223,15 @@ HACK_DATA Cfg_FanSpeedPercent
 %define PHYS_MEM_REGION_RASTERIZER_TEXACCUM_TARGET					2
 
 
-; Compilation options:
+; Runtime cache sizes:
 %define RUNTIME_DATA_REGION_SIZE_ADJUST_128MB	1024*1024*25		; 25MB size reduction for 128MB consoles
 %define RUNTIME_DATA_REGION_SIZE_ADJUST_64MB	1024*1024*1			; 1MB size reduction for 64MB consoles
-%define EXPANDED_TEXTURE_CACHE_SIZE				1024*1024*25		; 20MB
-%define EXPANDED_GEOMETRY_CACHE_SIZE			1024*1024*15		; 12MB (SP = 6.5MB, MP = 7MB)
+
+%define EXPANDED_TEXTURE_CACHE_SIZE				1024*1024*25		; 25MB
+%define EXPANDED_TEXTURE_CACHE_SIZE_720			1024*1024*30		; 30MB
+
+%define EXPANDED_GEOMETRY_CACHE_SIZE			1024*1024*15		; 15MB (SP = 6.5MB, MP = 7MB)
+%define EXPANDED_GEOMETRY_CACHE_SIZE_720		1024*1024*20		; 20MB
 
 ;---------------------------------------------------------
 ; Patch the XBE header flags to remove the XINIT_LIMIT_DEVKIT_MEMORY to allow use of upper 64MB of RAM
@@ -293,7 +309,7 @@ _Hack_InitHacks:
 		
 		; Check if we should overclock the GPU.
 		cmp		byte [Cfg_OverclockGPU], 1
-		jnz		.check_memory
+		jnz		.set_hdd_speed
 		
 			; Check that the fan speed override has been set and force it to max speed if not.
 			cmp		byte [Cfg_OverrideFanSpeed], 1
@@ -313,6 +329,23 @@ _Hack_InitHacks:
 			; Update GPU clock configuration.
 			push	dword [Cfg_GPUOverclockStep]
 			call	_Util_OverclockGPU
+		
+.set_hdd_speed:
+
+		; Check if we should set HDD speed.
+		cmp		byte [Cfg_SetHddSpeed], 1
+		jnz		.check_memory
+		
+			; Set HDD UDMA speed.
+			push	dword [Cfg_HddSpeed]
+			call	_Util_HddSetTransferSpeed
+			cmp		eax, 1
+			jz		.check_memory
+			
+				; Set HDD speed failed, console could be in unstable state, do a cold reboot.
+				push	3
+				call	dword [HalReturnToFirmware]
+				INT3
 		
 .check_memory:
 		
@@ -1424,7 +1457,13 @@ _Hook__initialize_geometry_cache:
 		
 			; Increase the size of the geometry cache.
 			mov		eax, EXPANDED_GEOMETRY_CACHE_SIZE
+			cmp		word [rasterizer_globals_screen_bounds_x1], 1920
+			jz		.size_calc
 			
+				; Additional size increase for 720p or lower.
+				mov		eax, EXPANDED_GEOMETRY_CACHE_SIZE_720
+			
+.size_calc:
 			; eax = size (finish size calculation)
 			push	ebp
 			push	esi
@@ -1499,6 +1538,15 @@ _Hook__initialize_standard_texture_cache:
 			imul	eax, 0Ch
 			add		eax, Hack_PhysicalMemoryRegionInfoTable		; pRegionInfo = &Hack_PhysicalMemoryRegionInfoTable[RegionIndex]
 			mov		esi, dword [eax+4]							; pRegionInfo->size
+			
+			; Check screen resolution and further adjust cache size.
+			cmp		word [rasterizer_globals_screen_bounds_x1], 1920
+			jz		.size_calc
+			
+				; Additional size increase for 720p or lower.
+				mov		esi, EXPANDED_TEXTURE_CACHE_SIZE_720
+				
+.size_calc:
 			mov		ecx, esi									; Used later in original function
 			sar     esi, 0Ch									; Used later in original function
 			

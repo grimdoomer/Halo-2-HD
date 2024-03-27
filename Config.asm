@@ -798,6 +798,10 @@ _Cfg_ConfigFileOptionTable:
 	; Misc options:
 	CFG_OPTION _Cfg_DebugMode, 0x611da1be, CFG_TYPE_BOOL, 0
 	
+	; Hdd options:
+	CFG_OPTION _Cfg_SetHddSpeed, 0x65fc3cc5, CFG_TYPE_BOOL, 0
+	CFG_OPTION _Cfg_HddSpeed, 0x1e21da0d, CFG_TYPE_INT, 3
+	
 	; Overclocking options:
 	CFG_OPTION _Cfg_OverclockGPU, 0xb0f1b6e5, CFG_TYPE_BOOL, 0
 	CFG_OPTION _Cfg_GPUOverclockStep, 0xdc90cddb, CFG_TYPE_INT, 28

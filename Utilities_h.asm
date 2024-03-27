@@ -85,6 +85,27 @@
 	
 %endmacro
 
+; Macro for port data output:
+;
+; OUTP <address>, <value>
+%macro OUTP 2
+
+	mov		dx, %1
+	mov		al, %2
+	out		dx, al
+
+%endmacro
+
+; Macro for port data input:
+;
+; INP <address>
+%macro INP 1
+
+	mov		dx, %1
+	in		al, dx
+
+%endmacro
+
 
 ; Functions implemented in Utilities.asm:
 HACK_FUNCTION Util_InstallHook
@@ -94,5 +115,7 @@ HACK_FUNCTION Util_GetMemoryCapacity
 HACK_FUNCTION Util_SetFanSpeed
 HACK_FUNCTION Util_OverclockGPU
 HACK_FUNCTION Util_DegreesToRadians
+HACK_FUNCTION Util_AtaIdentify
+HACK_FUNCTION Util_HddSetTransferSpeed
 
 %endif ; _UTILITIES_H
