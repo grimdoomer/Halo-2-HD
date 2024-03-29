@@ -42,6 +42,10 @@ use transfer speeds faster than UDMA 3 you will need an 80-pin IDE cable. Trying
 #### Quality of Life Improvements
 A few quality of life improvements have been added such as customizable field of view and options to control whether split screen divides the screen horizontally or vertically.
 
+## Compatibility
+Due to how this patch works it is not compatible with the Xbox 360 back-compat emulator, nor will it ever be. It would require complex changes to the emulator itself and I have no plans on ever investigating it further. This patch has also not been tested on
+XQEMU or any other Xbox emulator for PC. It has only been tested on real hardware and I have no plans for providing additional support for any other means of running original Xbox games.
+
 ## Hardware Requirements
 This patch can be used on any soft or hard modded Xbox console with no additional hardware modifications. However, if you don't have the 128MB RAM mod you will only be able to play the game in 480p mode. There is NOT enough RAM to play the game
 in 720p or 1080i without the RAM upgrade. Additionally you will need an 80-pin IDE cable if you want to use HDD transfer speeds faster than UDMA 3. You do not need a CPU upgraded console to use this patch and having one does not provide any additional
