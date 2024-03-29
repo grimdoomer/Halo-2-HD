@@ -1,6 +1,8 @@
 # Halo 2 HD
 Halo 2 HD is a mod for the original Xbox version of Halo 2 to add support for HD resolutions as well as some quality of life updates. This mod will let you play the game in 480p (proper), 720p, and 1080i (1080p internally).
 
+![](/_images/coag_1080p.png)
+
 ## Features
 This mod adds the following features to the game:
 - Support for 480p (proper), 720p, and 1080i (1080p) resolutions.
@@ -21,6 +23,8 @@ appear "compressed" width wise.
 This patch addresses those issues by rendering in proper 480p resolution and disabling the anamorphic scaling that would normally get applied. It also allows you to play the game in 720p and 1080i. When 1080i mode is enabled
 the game is actually rendering at 1080p internally before being encoded into interlaced video signal. The 1080i mode is not considered "playable" as it puts an extreme load on the console GPU (even with overclocking), and typically
 plays at single digit FPS at best. I added support for it mostly because I wanted to see if I could get it to work and also so I could take some sweet screenshots before the frame buffer gets converted into interlaced video.
+
+![](/_images/hd_resolutions.png)
 
 #### RAM Upgrades
 If your console has 128MB of RAM this patch will utilize the extra RAM available which will enable use of 720p and 1080i video modes as well as increase the size of in-memory caches for textures and geometry. The size increase for the
@@ -43,10 +47,13 @@ This patch can be used on any soft or hard modded Xbox console with no additiona
 in 720p or 1080i without the RAM upgrade. Additionally you will need an 80-pin IDE cable if you want to use HDD transfer speeds faster than UDMA 3. You do not need a CPU upgraded console to use this patch and having one does not provide any additional
 performance gains that I've been able to measure during testing.
 
-## Known Issues
+## Known Issues/Limitations
 This patch currently only works with the base version of the game (1.0) and does not work with the 1.5 update. I plan to port the patch to the 1.5 update at some point in the future. In addition to that there are a couple limitations/known issues such as:
 - Campaign checkpoints may not work between this patch and other versions of the game. When loading a campaign save game you may have to start the most recent level from the beginning instead of from the last checkpoint reached.
 - You will not be able to take screenshots using Xbox Neighborhood or other tools based on Xbdm when running with 128MB of RAM. You will need to use a tool I wrote that can handle taking screenshots when using 128MB of RAM: [XboxImageGrabber](https://github.com/grimdoomer/XboxImageGrabber)
+- HUD elements will get smaller when using higher resolutions. Scaling the HUD elements is non-trivial and will most likely not be fixed.
+- Bink videos (intro, attraction, credits) still play in 640x480 resolution. I may look into fixing this in a future update but will most likely result in the videos being stretched.
+- Campaign loading screen, player sign-in screen, and pre-game lobbies still render in 640x480, adjusting this is non-trivial and most likely won't be fixed.
 
 ## Installation & Compiling
 You can find a precompiled version of the patch in the Releases section, you'll need [XDelta](https://www.romhacking.net/utilities/598/) to apply the patch to the clean v1.0 xbe file (SHA1: 78BCC597D9A30AE91DF6FC5EB44FDC62A28EE7F2). 
