@@ -13,7 +13,7 @@ This mod adds the following features to the game:
 - Customizable field of view.
 - Customizable split screen divider (horizontal or vertical).
 
-All of these features are customizable through an ini config file and are explained in detail in the wiki.
+All of these features are customizable through an ini config file and are explained in detail in the wiki: [Configuration File](https://github.com/grimdoomer/Halo-2-HD/wiki/Configuration-File).
 
 #### HD Resolutions
 Halo 2 claims it supports 480p on the box but this isn't entirely accurate. It DOES support 480p output but it does NOT render in 480p natively. Regardless of what video settings are set on the console the stock game will always
@@ -36,7 +36,7 @@ highly recommended for 720p mode as it can increase FPS by as much as 10 FPS. Ho
 outlined in the wiki and should be thoroughly read and understood before attempting to enable and configure GPU overclocking.
 
 #### HDD Transfer Speeds
-This patch can increase the speed at which the HDD transfers data to the console which will improve loading times and help reduce pop-in. This value is customizable via the config file and is explained in detail in the wiki. In order to 
+This patch can increase the speed at which the HDD transfers data to the console which will improve loading times and help reduce pop-in. This value is customizable via the config file and is explained in detail [here](https://github.com/grimdoomer/Halo-2-HD/wiki/Configuration-File#hddspeed). In order to 
 use transfer speeds faster than UDMA 3 you will need an 80-pin IDE cable. Trying to use UDAM 4 or 5 with the stock 40-pin cable will result in read errors and the game crashing on startup.
 
 #### Quality of Life Improvements
@@ -64,9 +64,9 @@ You can find a precompiled version of the patch in the Releases section, you'll 
 
 Once the patch is applied you will
 need to copy the patched xbe file and the hd_config.ini file into your Halo 2 game folder on your Xbox console. You'll also want to edit the config file and adjust any settings you'd like to change. Additional information for what the settings are and how to change them can
-be found in the wiki.
+be found in the wiki: [Configuration File](https://github.com/grimdoomer/Halo-2-HD/wiki/Configuration-File).
 
-Compiling the patch from scratch requires a few different tools. The process is explained in detail in the wiki.
+Compiling the patch from scratch requires a few different tools. The process is explained in detail in the wiki: [Compiling](https://github.com/grimdoomer/Halo-2-HD/wiki/Compiling).
 
 ## FAQ
 **Q**: Do I need a CPU upgraded console in order to use this patch? \
