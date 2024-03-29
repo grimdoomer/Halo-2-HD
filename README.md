@@ -78,10 +78,10 @@ Compiling the patch from scratch requires a few different tools. The process is 
 **Q**: Will this work with such-n-such BIOS? \
 **A**: The patch does not require any specific BIOS to be used and all features should work on all BIOS images. If you have 128MB of RAM you will need a BIOS image that supports the RAM upgrade or the patch will not be able to make use of the additional RAM.
 
-**Q**: Does this work on the Xbox 360 back-compat emulator?
+**Q**: Does this work on the Xbox 360 back-compat emulator? \
 **A**: Due to how this patch works it does not work on the Xbox 360 back-compat emulator, nor will it ever. I have no plans to make it compatible with the emulator.
 
-**Q**: Does this work on XQEMU/other Xbox emulators for PC?
+**Q**: Does this work on XQEMU/other Xbox emulators for PC? \
 **A**: This patch is most likely not compatible with Xbox emulators on PC and I have no plans for providing support for them.
 
 **Q**: I'm no longer able to take screenshots with Xbox Neighborhood and it just gives me a white image? \
