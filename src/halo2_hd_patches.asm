@@ -245,6 +245,17 @@ _xbe_header_flags_start:
 _xbe_header_flags_end:
 
 ;---------------------------------------------------------
+; Patch the XBE header to update game name
+;---------------------------------------------------------
+dd      190h
+dd      (_xbe_header_name_end - _xbe_header_name_start)
+_xbe_header_name_start:
+
+        dw		__?utf16?__(`Halo 2 HD`),0
+
+_xbe_header_name_end:
+
+;---------------------------------------------------------
 ; Hook main so we can setup our hooks
 ;---------------------------------------------------------
 dd      002D0AD0h - ExecutableBaseAddress
