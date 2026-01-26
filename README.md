@@ -1,7 +1,7 @@
 # Halo 2 HD
 Halo 2 HD is a mod for the original Xbox version of Halo 2 to add support for HD resolutions as well as some quality of life updates. This mod will let you play the game in 480p (proper), 720p, and 1080i (1080p internally).
 
-![](/_images/coag_1080p.png)
+<img width="1920" height="1080" alt="coag_1080p" src="https://github.com/user-attachments/assets/be7831a7-8bb9-4278-ae5d-d521a418ee15" />
 
 ## Features
 This mod adds the following features to the game:
@@ -24,7 +24,7 @@ This patch addresses those issues by rendering in proper 480p resolution and dis
 the game is actually rendering at 1080p internally before being encoded into interlaced video signal. The 1080i mode is not considered "playable" as it puts an extreme load on the console GPU (even with overclocking), and typically
 plays at single digit FPS at best. I added support for it mostly because I wanted to see if I could get it to work and also so I could take some sweet screenshots before the frame buffer gets converted into interlaced video.
 
-![](/_images/hd_resolutions.png)
+<img width="1920" height="1080" alt="hd_resolutions" src="https://github.com/user-attachments/assets/72c5349f-8b56-40d6-a19e-8db831334eaa" />
 
 #### RAM Upgrades
 If your console has 128MB of RAM this patch will utilize the extra RAM available which will enable use of 720p and 1080i video modes as well as increase the size of in-memory caches for textures and geometry. The size increase for the
