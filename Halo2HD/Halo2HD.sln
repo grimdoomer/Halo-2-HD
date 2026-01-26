@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36623.8
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Halo2HD", "Halo2HD\Halo2HD.vcxproj", "{2C95FF12-97F5-4459-BD01-DBF80FCF1DAE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Release_v1.0|x86 = Release_v1.0|x86
+		Release_v1.5|x86 = Release_v1.5|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2C95FF12-97F5-4459-BD01-DBF80FCF1DAE}.Release_v1.0|x86.ActiveCfg = Release_v1.0|Win32
+		{2C95FF12-97F5-4459-BD01-DBF80FCF1DAE}.Release_v1.0|x86.Build.0 = Release_v1.0|Win32
+		{2C95FF12-97F5-4459-BD01-DBF80FCF1DAE}.Release_v1.5|x86.ActiveCfg = Release_v1.5|Win32
+		{2C95FF12-97F5-4459-BD01-DBF80FCF1DAE}.Release_v1.5|x86.Build.0 = Release_v1.5|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5FDD86E9-FEA6-42BD-A9BF-340863D1BFA0}
+	EndGlobalSection
+EndGlobal
