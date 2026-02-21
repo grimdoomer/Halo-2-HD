@@ -14,15 +14,3 @@
 
 // Macro to wrap inlined uses of version specific game addresses (makes searching for uses of hard coded addresses easy):
 #define VERSION_SPECIFIC_ADDR(a)        a
-
-//// Basic type definitions:
-//typedef char                CHAR;
-//typedef unsigned char       UCHAR;
-//typedef short               SHORT;
-//typedef unsigned short      USHORT, WORD;
-//typedef int                 LONG;
-//typedef unsigned int        ULONG, DWORD;
-//
-//typedef int                 BOOL;
-//
-//typedef void*               HANDLE;

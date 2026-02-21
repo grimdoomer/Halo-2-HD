@@ -24,7 +24,7 @@ extern "C"
     ULONG WINAPI D3DResource_Release(D3DResource* pResource);
 };
 
-HRESULT __cdecl Direct3D_CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, void* pUnused, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDevice** ppReturnedDeviceInterface)
+inline HRESULT __cdecl Direct3D_CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, void* pUnused, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDevice** ppReturnedDeviceInterface)
 {
     _asm
     {
@@ -35,7 +35,7 @@ HRESULT __cdecl Direct3D_CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, void*
     }
 }
 
-HRESULT __cdecl D3DDevice_Reset(D3DPRESENT_PARAMETERS* pPresentationParameters)
+inline HRESULT __cdecl D3DDevice_Reset(D3DPRESENT_PARAMETERS* pPresentationParameters)
 {
     _asm
     {
@@ -46,7 +46,7 @@ HRESULT __cdecl D3DDevice_Reset(D3DPRESENT_PARAMETERS* pPresentationParameters)
     }
 }
 
-ULONG __cdecl D3DDevice_Swap(ULONG Flags)
+inline ULONG __cdecl D3DDevice_Swap(ULONG Flags)
 {
     _asm
     {
@@ -55,7 +55,7 @@ ULONG __cdecl D3DDevice_Swap(ULONG Flags)
     }
 }
 
-void D3DDevice_GetBackBuffer(D3DDevice* Device, int BackBuffer, D3DBACKBUFFER_TYPE Type, D3DSurface** ppBackBuffer)
+inline void D3DDevice_GetBackBuffer(D3DDevice* Device, int BackBuffer, D3DBACKBUFFER_TYPE Type, D3DSurface** ppBackBuffer)
 {
     // Convert the specific back buffer index to an array index.
     int index;
@@ -71,7 +71,7 @@ void D3DDevice_GetBackBuffer(D3DDevice* Device, int BackBuffer, D3DBACKBUFFER_TY
     (*ppBackBuffer)->AddRef();
 }
 
-HRESULT D3DDevice_GetDepthStencilSurface(D3DDevice* Device, D3DSurface** ppZStencilSurface)
+inline HRESULT D3DDevice_GetDepthStencilSurface(D3DDevice* Device, D3DSurface** ppZStencilSurface)
 {
     // Get the depth stencil surface.
     *ppZStencilSurface = *(D3DSurface**)((BYTE*)Device + D3D_VERSION_SPECIFIC(0x1A08));
@@ -85,23 +85,23 @@ HRESULT D3DDevice_GetDepthStencilSurface(D3DDevice* Device, D3DSurface** ppZSten
     return D3DERR_NOTFOUND;
 }
 
-ULONG D3DResource::AddRef()
+inline ULONG D3DResource::AddRef()
 {
     return D3DResource_AddRef(this);
 }
 
-ULONG D3DResource::Release()
+inline ULONG D3DResource::Release()
 {
     return D3DResource_Release(this);
 }
 
-HRESULT D3DDevice::GetBackBuffer(int BackBuffer, D3DBACKBUFFER_TYPE Type, D3DSurface** ppBackBuffer)
+inline HRESULT D3DDevice::GetBackBuffer(int BackBuffer, D3DBACKBUFFER_TYPE Type, D3DSurface** ppBackBuffer)
 {
     D3DDevice_GetBackBuffer(this, BackBuffer, Type, ppBackBuffer);
     return S_OK;
 }
 
-HRESULT D3DDevice::GetDepthStencilSurface(D3DSurface** ppZStencilSurface)
+inline HRESULT D3DDevice::GetDepthStencilSurface(D3DSurface** ppZStencilSurface)
 {
     return D3DDevice_GetDepthStencilSurface(this, ppZStencilSurface);
 }
@@ -115,7 +115,7 @@ namespace D3D
         ULONG WINAPI _CalcTilePitch(int width, D3DFORMAT format);
     };
 
-    ULONG __cdecl CalcTilePitch(int width, D3DFORMAT format)
+    inline ULONG __cdecl CalcTilePitch(int width, D3DFORMAT format)
     {
         _asm
         {

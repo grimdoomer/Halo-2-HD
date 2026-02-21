@@ -188,4 +188,6 @@ extern "C"
     void XPhysicalProtect(void* lpAddress, size_t dwSize, DWORD flNewProtect);
 
     //void* VirtualAlloc(void* lpAddress, size_t dwSize, DWORD flAllocationType, DWORD flProtect);
+
+    int __cdecl snwprintf(wchar_t* buffer, size_t count, const wchar_t* format, ...);
 };

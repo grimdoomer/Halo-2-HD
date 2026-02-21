@@ -24,7 +24,10 @@
     <ClCompile Include="Config\Config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Blam\Utilities\Utilities.cpp">
+    <ClCompile Include="Utilities\Utilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Debug.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -41,7 +44,7 @@
     <ClInclude Include="Config\Config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Blam\Utilities\Utilities.h">
+    <ClInclude Include="Blam\memory\crc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Blam\camera\first_person_camera.h">
@@ -104,16 +107,17 @@
     <ClInclude Include="Blam\rasterizer\rasterizer_text.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Utilities\Utilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Blam\main\main_time.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Blam\Halo2_v1.0_Symbols.cfg">
       <Filter>Header Files</Filter>
     </None>
     <None Include="Blam\Halo2_v1.5_Symbols.cfg" />
-  </ItemGroup>
-  <ItemGroup>
-    <MASM Include="Blam\Utilities\UtilitiesAsm.asm">
-      <Filter>Source Files</Filter>
-    </MASM>
   </ItemGroup>
 </Project>

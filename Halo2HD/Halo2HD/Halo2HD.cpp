@@ -5,7 +5,7 @@
 #include "Xbox/Xbox.h"
 #include "Blam/Halo2.h"
 #include "Config/Config.h"
-#include "Blam/Utilities/Utilities.h"
+#include "Utilities/Utilities.h"
 #include <intrin.h>
 
 #include "Blam/DirectX.h"
@@ -100,7 +100,11 @@ void Hack_PhysicalMemoryFree(int regionIndex);
 
 void Hook_bink_playback_start(const char* file_path, unsigned int flags);
 
+bool Hook__should_draw_player_hud();
+
 void Hack_ColdRebootConsole();
+
+extern void Dbg_DrawPerfCounters();
 
 
 extern "C" void __cdecl ExpansionMain()
@@ -184,20 +188,20 @@ extern "C" void __cdecl ExpansionMain()
     Util_InstallHook((void*)__rasterizer_get_render_target_resolution, (void*)Hook_rasterizer_get_render_target_resolution);
     Util_InstallHook((void*)_rasterizer_should_render_screen_effect, (void*)Hook_rasterizer_should_render_screen_effect);
 
-    //Util_InstallHook((void*)interface_splitscreen_render, (void*)Hook_interface_splitscreen_render);
+    Util_InstallHook((void*)interface_splitscreen_render, (void*)Hook_interface_splitscreen_render);
 
     Util_InstallHook((void*)bink_playback_start, (void*)Hook_bink_playback_start);
 
 #ifdef H2_1_0
-    Util_InstallHook((void*)0x0001DC40, (void*)Hook_create_render_target_18_helper);
-    Util_WriteDword((void*)0x00025E09, (unsigned int)Hook_rasterizer_fog_composite_get_register);
-    Util_InstallHook((void*)0x00223564, (void*)Hook__renderer_setup_player_windows);
+    Util_InstallHook((void*)VERSION_SPECIFIC_ADDR(0x0001DC40), (void*)Hook_create_render_target_18_helper);
+    Util_WriteDword((void*)VERSION_SPECIFIC_ADDR(0x00025E09), (unsigned int)Hook_rasterizer_fog_composite_get_register);
+    Util_InstallHook((void*)VERSION_SPECIFIC_ADDR(0x00223564), (void*)Hook__renderer_setup_player_windows);
 #elif H2_1_5
-    Util_InstallHook((void*)0x0001DC20, (void*)Hook_create_render_target_18_helper);
-    Util_WriteDword((void*)0x00025DE9, (unsigned int)Hook_rasterizer_fog_composite_get_register);
-    //Util_InstallHook((void*)0x00229F74, (void*)Hook__renderer_setup_player_windows);
+    Util_InstallHook((void*)VERSION_SPECIFIC_ADDR(0x0001DC20), (void*)Hook_create_render_target_18_helper);
+    Util_WriteDword((void*)VERSION_SPECIFIC_ADDR(0x00025DE9), (unsigned int)Hook_rasterizer_fog_composite_get_register);
+    Util_InstallHook((void*)VERSION_SPECIFIC_ADDR(0x00229F74), (void*)Hook__renderer_setup_player_windows);
 #endif
-
+    
     // Hook HalReturnToFirmware so that any attempt to quit the game results in a cold reboot of the console.
     // Due to how we hot patch the kernel(in 128MB mode) the console is basically "hosed" after running the game. Any attempt
     // to run another executable, return to dash, IRG, etc, will result in graphical artifacting and the console freezing.
@@ -210,8 +214,11 @@ extern "C" void __cdecl ExpansionMain()
     // Check if we should disable the HUD.
     if (Cfg_DisableHud.GetValue<bool>() == true)
     {
-        // TODO: 1.0 xbe uses a function to determine if the HUD should be drawn, 1.5 might inline that function. Need to look into
-        // using the ice cream toggles instead since that's easier.
+#ifdef H2_1_0
+        Util_InstallHook((void*)VERSION_SPECIFIC_ADDR(0x0013939B), (void*)Hook__should_draw_player_hud);
+#elif H2_1_5
+        Util_InstallHook((void*)VERSION_SPECIFIC_ADDR(0x0013BE7B), (void*)Hook__should_draw_player_hud);
+#endif
     }
 
     // Check if we should disable atmospheric fog for more perf.
@@ -410,7 +417,8 @@ ULONG _Hook_D3DDevice_Swap(ULONG Flags)
     // Check if debug mode is enabled and draw perf counters if so.
     if (Cfg_DebugMode.GetValue<bool>() == true)
     {
-        // TODO: draw fps counter
+        // Draw FPS counter.
+        Dbg_DrawPerfCounters();
     }
 
     // Call the trampoline and let the back buffers rotate.
@@ -818,11 +826,15 @@ bool Hook_rasterizer_fog_composite_get_register(int register_index, real_rectang
     // Call the original function.
     bool result = rasterizer_fog_composite_get_register(register_index, bounds, location, output, unk);
 
-    // Check the output vector and correct texcoord positions.
-    if (output->x != 0.f)
-        output->x = (float)rasterizer_globals.screen_bounds.x1;
-    if (output->y != 0.f)
-        output->y = (float)rasterizer_globals.screen_bounds.y1;
+    // Only modify the output values for vertex element 4 (TEXCOORD3).
+    if (register_index == 4)
+    {
+        // Check the output vector and correct texcoord positions.
+        if (output->x != 0.f)
+            output->x = 320.0f;
+        if (output->y != 0.f)
+            output->y = 240.0f;
+    }
 
     return result;
 }
@@ -843,40 +855,40 @@ void Hook_interface_splitscreen_render()
     if (render_globals___screen_split_mode == 1)
     {
         // Draw vertical split.
-        rect.x0 = halfHeight - 1;
-        rect.y0 = 0;
-        rect.x1 = halfHeight + 1;
-        rect.y1 = rasterizer_globals.screen_bounds.x1;
+        rect.x0 = 0;
+        rect.y0 = halfHeight - 1;
+        rect.x1 = rasterizer_globals.screen_bounds.x1;
+        rect.y1 = halfHeight + 1;
         draw_quad(&rect, 0xFF000000);
 
         // Check if there's more than 2 players.
         if (render_globals__player_window_count > 2)
         {
             // Draw horizontal split.
-            rect.x0 = render_globals__player_window_count == 3 ? halfHeight : 0;
-            rect.y0 = halfWidth - 1;
-            rect.x1 = rasterizer_globals.screen_bounds.y1;
-            rect.y1 = halfWidth + 1;
+            rect.x0 = halfWidth - 1;
+            rect.y0 = render_globals__player_window_count == 3 ? halfHeight : 0;
+            rect.x1 = halfWidth + 1;
+            rect.y1 = rasterizer_globals.screen_bounds.y1;
             draw_quad(&rect, 0xFF000000);
         }
     }
     else
     {
         // Draw vertical split.
-        rect.x0 = 0;
-        rect.y0 = halfWidth - 1;
-        rect.x1 = rasterizer_globals.screen_bounds.y1;
-        rect.y1 = halfWidth + 1;
+        rect.x0 = halfWidth - 1;
+        rect.y0 = 0;
+        rect.x1 = halfWidth + 1;
+        rect.y1 = rasterizer_globals.screen_bounds.y1;
         draw_quad(&rect, 0xFF000000);
 
         // Check if there's more than 2 players.
         if (render_globals__player_window_count > 2)
         {
             // Draw horizontal split.
-            rect.x0 = halfHeight - 1;
-            rect.y0 = render_globals__player_window_count == 3 ? halfWidth : 0;
-            rect.x1 = halfHeight + 1;
-            rect.y1 = rasterizer_globals.screen_bounds.x1;
+            rect.x0 = render_globals__player_window_count == 3 ? halfWidth : 0;
+            rect.y0 = halfHeight - 1;
+            rect.x1 = rasterizer_globals.screen_bounds.x1;
+            rect.y1 = halfHeight + 1;
             draw_quad(&rect, 0xFF000000);
         }
     }
@@ -1049,6 +1061,11 @@ void __declspec(naked) Hook_bink_playback_start(const char* file_path, unsigned 
         push    bink_playback_start+9
         ret
     }
+}
+
+bool Hook__should_draw_player_hud()
+{
+    return false;
 }
 
 void Hack_ColdRebootConsole()

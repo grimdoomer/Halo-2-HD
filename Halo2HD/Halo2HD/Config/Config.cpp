@@ -1,6 +1,7 @@
 
 #include "Config.h"
-#include "Blam/Utilities/Utilities.h"
+#include "Utilities/Utilities.h"
+#include "Blam/memory/crc.h"
 
 // Forward declarations:
 bool Cfg_ParseConfigLine(char* pNameString, char* pValueString);
@@ -135,7 +136,7 @@ bool Cfg_ParseConfigLine(char* pNameString, char* pValueString)
 
     // Calculate the checksum of the config value name.
     int length = lstrlenA(pNameString);
-    crc32_calculate(&checksum, (unsigned char*)pNameString, length);
+    crc_checksum_buffer(&checksum, (unsigned char*)pNameString, length);
 
 #ifdef CFG_DEBUG_ENABLED
     DbgPrint("Cfg: Crc=0x%08x Name=%s Value=%s\n", checksum, pNameString, pValueString);

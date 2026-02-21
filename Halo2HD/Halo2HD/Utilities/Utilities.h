@@ -1,15 +1,6 @@
 
 #pragma once
-#include "Blam/Halo2.h"
-
-extern "C"
-{
-    // Do NOT call, use crc32_calculate instead
-    void crc_checksum_buffer(int* checksum, unsigned char* buffer, int length);
-
-    // Stub for fastcall version of crc_checksum_buffer
-    void __cdecl crc32_calculate(int* checksum, unsigned char* buffer, int length);
-};
+#include "Xbox/Xbox.h"
 
 // ------------------------------------------------------------------------------
 // Debugging utilities:

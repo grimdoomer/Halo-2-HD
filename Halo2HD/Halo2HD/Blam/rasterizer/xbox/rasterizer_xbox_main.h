@@ -74,7 +74,7 @@ extern "C"
     bool _rasterizer_should_render_screen_effect();
 };
 
-void __cdecl _rasterizer_init_screen_bounds(word x_off, word y_off, float scale)
+inline void __cdecl _rasterizer_init_screen_bounds(word x_off, word y_off, float scale)
 {
     _asm
     {
@@ -85,7 +85,7 @@ void __cdecl _rasterizer_init_screen_bounds(word x_off, word y_off, float scale)
     }
 }
 
-bool __cdecl rasterizer_device_initialize(const rasterizer_device_parameters* parameters)
+inline bool __cdecl rasterizer_device_initialize(const rasterizer_device_parameters* parameters)
 {
     _asm
     {

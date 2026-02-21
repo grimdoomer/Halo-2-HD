@@ -1,4 +1,3 @@
-
 #include "Utilities.h"
 #include <intrin.h>
 
@@ -104,11 +103,23 @@ void Util_OverclockGPU(int step)
     volatile ULONG* NVPLL_COEFF = (volatile ULONG*)0xFD680500;
     ULONG coeff = *NVPLL_COEFF;
 
+    /*
+        NVPLL_COEFF (32 bits):
+            Bits 0-7: M
+            Bits 8-15: N
+            Bits 16-18: P
+
+        BASE_CLK = 16.6667 Mhz
+
+        nvclk = (N * BASE_CLK / (1 << P) / M)
+    */
+    coeff = (1 << 16) | (step & 0xFF) << 8 | 1;
+
     // Mask out the old NDIV value.
-    coeff &= ~0xFF00;
+    //coeff &= ~0xFF00;
 
     // Mask in the new NDIV value from the config file.
-    coeff |= (step & 0xFF) << 8;
+    //coeff |= (step & 0xFF) << 8;
 
     // Write the new NVPLL_COEFF value.
     *NVPLL_COEFF = coeff;

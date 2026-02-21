@@ -92,8 +92,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Blam\Utilities\Utilities.cpp" />
     <ClCompile Include="Config\Config.cpp" />
+    <ClCompile Include="Debug.cpp" />
+    <ClCompile Include="Utilities\Utilities.cpp" />
     <ClCompile Include="Xbox\Xbox.cpp" />
     <ClCompile Include="Halo2HD.cpp" />
   </ItemGroup>
@@ -108,6 +109,7 @@
     <ClInclude Include="Blam\DirectX.h" />
     <ClInclude Include="Blam\Halo2.h" />
     <ClInclude Include="Blam\interface\interface.h" />
+    <ClInclude Include="Blam\main\main_time.h" />
     <ClInclude Include="Blam\memory\data.h" />
     <ClInclude Include="Blam\memory\lruv_cache.h" />
     <ClInclude Include="Blam\rasterizer\rasterizer_text.h" />
@@ -118,17 +120,15 @@
     <ClInclude Include="Blam\render\render_cameras.h" />
     <ClInclude Include="Blam\text\draw_string.h" />
     <ClInclude Include="Blam\text\font_group.h" />
-    <ClInclude Include="Blam\Utilities\Utilities.h" />
+    <ClInclude Include="Blam\memory\crc.h" />
     <ClInclude Include="Blam\XGraphics.h" />
     <ClInclude Include="Config\Config.h" />
     <ClInclude Include="Halo2HD.h" />
     <None Include="Blam\Halo2_v1.0_Symbols.cfg">
       <FileType>Document</FileType>
     </None>
+    <ClInclude Include="Utilities\Utilities.h" />
     <ClInclude Include="Xbox\Xbox.h" />
-    <MASM Include="Blam\Utilities\UtilitiesAsm.asm">
-      <FileType>Document</FileType>
-    </MASM>
     <None Include="Blam\Halo2_v1.5_Symbols.cfg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
