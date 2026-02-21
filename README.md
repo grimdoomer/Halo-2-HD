@@ -17,6 +17,7 @@ All of these features are customizable through an ini config file and are explai
 
 #### HD Resolutions
 This patch allows you to play the game in 480p (wide), 720p and 1080i as well as disable anamorphic scaling. On the stock version of the game when 480p and widescreen are enabled on the console the game will always render in 640x480. This patch adds support for the 480p "wide" resolution 720x480. 
+
 When 1080i mode is enabled the game is actually rendering at 1080p internally before being encoded into interlaced video signal. The 1080i mode is not considered "playable" as it puts an extreme load on the console GPU (even with overclocking), and typically
 plays at single digit FPS at best. I added support for it mostly because I wanted to see if I could get it to work and also so I could take some sweet screenshots before the frame buffer gets converted into interlaced video.
 
