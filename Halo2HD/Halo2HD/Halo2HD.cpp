@@ -691,7 +691,7 @@ bool _Hook_rasterizer_allocate_and_create_render_target(int rasterizer_target, i
 
         // Allocate memory from the game's self-managed memory pool.
         renderTargetBuffer = (unsigned char*)physical_memory_globals.hi_stage_address[physical_memory_globals.current_stage] - allocationSize;
-        if (renderTargetBuffer > physical_memory_globals.low_stage_address[physical_memory_globals.current_stage])
+        if (renderTargetBuffer >= physical_memory_globals.low_stage_address[physical_memory_globals.current_stage])
         {
             physical_memory_globals.hi_stage_address[physical_memory_globals.current_stage] = renderTargetBuffer;
 
@@ -784,10 +784,10 @@ void __declspec(naked) Hook_create_render_target_18_helper()
     {
         // Use screen resolution for creating render target 18 (memory is stolen from the standard texture cache).
         lea     ecx, rasterizer_globals
-        movsx   ax, [ecx+2+4]               // rasterizer_globals.screen_bounds.x1
-        mov     [esp+4], eax                // width = rasterizer_globals.screen_bounds.x1
-        movsx   ax, [ecx+2+6]               // rasterizer_globals.screen_bounds.y1
-        mov     [esp+8], eax                // height = rasterizer_globals.screen_bounds.y1
+        movsx   ax, word ptr [ecx+2+4]      // rasterizer_globals.screen_bounds.y1
+        mov     [esp+4], eax                // width = rasterizer_globals.screen_bounds.y1
+        movsx   ax, word ptr [ecx+2+6]      // rasterizer_globals.screen_bounds.x1
+        mov     [esp+8], eax                // height = rasterizer_globals.screen_bounds.x1
 
         // Replace instructions we overwrote.
 #ifdef H2_1_0
