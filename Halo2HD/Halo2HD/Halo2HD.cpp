@@ -2,10 +2,12 @@
 //
 
 #include "Halo2HD.h"
-#include "Xbox/Xbox.h"
 #include "Blam/Halo2.h"
 #include "Config/Config.h"
-#include "Utilities/Utilities.h"
+#include <Utilities/Overclocking.h>
+#include <Utilities/Hooking.h>
+#include <Utilities/Utilities.h>
+#include <Xtl/XConfig.h>
 #include <intrin.h>
 
 #include "Blam/DirectX.h"
@@ -102,22 +104,17 @@ void Hook_bink_playback_start(const char* file_path, unsigned int flags);
 
 bool Hook__should_draw_player_hud();
 
-void Hack_ColdRebootConsole();
-
 extern void Dbg_DrawPerfCounters();
 
 
-extern "C" void __cdecl ExpansionMain()
+extern "C" void __cdecl TrainerDllMain()
 {
-    // Resolve kernel imports.
-    ResolveKernelImports();
-
     // Print startup banner.
     DbgPrint("Halo 2 HD initializing...\n");
     //DBG_BREAKPOINT();
 
     // Parse the config file.
-    Cfg_ParseConfigFile();
+    ParseConfigFile("D:\\hd_config.ini", Cfg_ConfigFileOptionTable, Cfg_ConfigFileOptionTableCount);
 
     // Check if we should overclock the GPU.
     if (Cfg_OverclockGPU.GetValue<bool>() == true)
@@ -132,17 +129,17 @@ extern "C" void __cdecl ExpansionMain()
         }
 
         // Set the fan speed first.
-        Util_SetFanSpeed(Cfg_FanSpeedPercent.GetValue<int>());
+        SetFanSpeed(Cfg_FanSpeedPercent.GetValue<int>());
 
         // Update GPU clock configuration.
-        Util_OverclockGPU(Cfg_GPUOverclockStep.GetValue<int>());
+        OverclockGPU(Cfg_GPUOverclockStep.GetValue<int>());
     }
 
     // Check if we should set the HDD speed.
     if (Cfg_SetHddSpeed.GetValue<bool>() == true)
     {
         // Set HDD UDMA speed.
-        if (Util_HddSetTransferSpeed(Cfg_HddSpeed.GetValue<int>()) == false)
+        if (SetHddTransferSpeed(Cfg_HddSpeed.GetValue<int>(), nullptr) == false)
         {
             // Set HDD speed failed, console could be in unstable state, do a cold reboot.
             HalReturnToFirmware(3);
@@ -150,10 +147,10 @@ extern "C" void __cdecl ExpansionMain()
     }
 
     // Check if the console has 128MB of RAM.
-    if (Util_GetMemoryCapacity() == 128)
+    if (GetMemoryCapacity() == 128)
     {
         // Patch the max usable PFN for contiguous allocations and flag the console has 128MB of RAM.
-        PatchkernelPhysicalMemoryLimit();
+        PatchKernelPhysicalMemoryLimit();
         Hack_HasRamUpgrade = true;
 
         // Force enable triple buffering.
@@ -163,10 +160,10 @@ extern "C" void __cdecl ExpansionMain()
         Hack_RuntimeDataRegionSize -= RUNTIME_DATA_REGION_SIZE_ADJUST_128MB;
 
         // Hook physical memory and cache initialization functions.
-        Util_InstallHook((void*)geometry_cache_open, (void*)Hook_geometry_cache_open);
-        Util_InstallHook((void*)geometry_cache_close, (void*)Hook_geometry_cache_close);
-        Util_InstallHook((void*)texture_cache_open, (void*)Hook_texture_cache_open);
-        Util_InstallHook((void*)texture_cache_close, (void*)Hook_texture_cache_close);
+        HookFunction((void*)geometry_cache_open, (void*)Hook_geometry_cache_open);
+        HookFunction((void*)geometry_cache_close, (void*)Hook_geometry_cache_close);
+        HookFunction((void*)texture_cache_open, (void*)Hook_texture_cache_open);
+        HookFunction((void*)texture_cache_close, (void*)Hook_texture_cache_close);
     }
     else
     {
@@ -177,36 +174,36 @@ extern "C" void __cdecl ExpansionMain()
     }
 
     // Install hooks.
-    Util_InstallHook((void*)physical_memory_initialize, (void*)Hook_physical_memory_initialize);
-    Util_InstallHook((void*)_D3DDevice_Swap, (void*)Hook_D3DDevice_Swap);
-    Util_InstallHook((void*)_rasterizer_detect_video_mode, (void*)Hook_rasterizer_detect_video_mode);
-    Util_InstallHook((void*)__rasterizer_init_screen_bounds, (void*)Hook_rasterizer_init_screen_bounds);
-    Util_InstallHook((void*)rasterizer_preinitialize, (void*)Hook_rasterizer_preinitialize);
-    Util_InstallHook((void*)_rasterizer_device_initialize, (void*)Hook_rasterizer_device_initialize);
-    Util_InstallHook((void*)rasterizer_primary_targets_initialize, (void*)Hook_rasterizer_primary_targets_initialize);
-    Util_InstallHook((void*)__rasterizer_allocate_and_create_render_target, (void*)Hook_rasterizer_allocate_and_create_render_target);
-    Util_InstallHook((void*)__rasterizer_get_render_target_resolution, (void*)Hook_rasterizer_get_render_target_resolution);
-    Util_InstallHook((void*)_rasterizer_should_render_screen_effect, (void*)Hook_rasterizer_should_render_screen_effect);
+    HookFunction((void*)physical_memory_initialize, (void*)Hook_physical_memory_initialize);
+    HookFunction((void*)_D3DDevice_Swap, (void*)Hook_D3DDevice_Swap);
+    HookFunction((void*)_rasterizer_detect_video_mode, (void*)Hook_rasterizer_detect_video_mode);
+    HookFunction((void*)__rasterizer_init_screen_bounds, (void*)Hook_rasterizer_init_screen_bounds);
+    HookFunction((void*)rasterizer_preinitialize, (void*)Hook_rasterizer_preinitialize);
+    HookFunction((void*)_rasterizer_device_initialize, (void*)Hook_rasterizer_device_initialize);
+    HookFunction((void*)rasterizer_primary_targets_initialize, (void*)Hook_rasterizer_primary_targets_initialize);
+    HookFunction((void*)__rasterizer_allocate_and_create_render_target, (void*)Hook_rasterizer_allocate_and_create_render_target);
+    HookFunction((void*)__rasterizer_get_render_target_resolution, (void*)Hook_rasterizer_get_render_target_resolution);
+    HookFunction((void*)_rasterizer_should_render_screen_effect, (void*)Hook_rasterizer_should_render_screen_effect);
 
-    Util_InstallHook((void*)interface_splitscreen_render, (void*)Hook_interface_splitscreen_render);
+    HookFunction((void*)interface_splitscreen_render, (void*)Hook_interface_splitscreen_render);
 
-    Util_InstallHook((void*)bink_playback_start, (void*)Hook_bink_playback_start);
+    HookFunction((void*)bink_playback_start, (void*)Hook_bink_playback_start);
 
 #ifdef H2_1_0
-    Util_InstallHook((void*)VERSION_SPECIFIC_ADDR(0x0001DC40), (void*)Hook_create_render_target_18_helper);
-    Util_WriteDword((void*)VERSION_SPECIFIC_ADDR(0x00025E09), (unsigned int)Hook_rasterizer_fog_composite_get_register);
-    Util_InstallHook((void*)VERSION_SPECIFIC_ADDR(0x00223564), (void*)Hook__renderer_setup_player_windows);
+    HookFunction((void*)VERSION_SPECIFIC_ADDR(0x0001DC40), (void*)Hook_create_render_target_18_helper);
+    PatchDword((void*)VERSION_SPECIFIC_ADDR(0x00025E09), (unsigned int)Hook_rasterizer_fog_composite_get_register);
+    HookFunction((void*)VERSION_SPECIFIC_ADDR(0x00223564), (void*)Hook__renderer_setup_player_windows);
 #elif H2_1_5
-    Util_InstallHook((void*)VERSION_SPECIFIC_ADDR(0x0001DC20), (void*)Hook_create_render_target_18_helper);
-    Util_WriteDword((void*)VERSION_SPECIFIC_ADDR(0x00025DE9), (unsigned int)Hook_rasterizer_fog_composite_get_register);
-    Util_InstallHook((void*)VERSION_SPECIFIC_ADDR(0x00229F74), (void*)Hook__renderer_setup_player_windows);
+    HookFunction((void*)VERSION_SPECIFIC_ADDR(0x0001DC20), (void*)Hook_create_render_target_18_helper);
+    PatchDword((void*)VERSION_SPECIFIC_ADDR(0x00025DE9), (unsigned int)Hook_rasterizer_fog_composite_get_register);
+    HookFunction((void*)VERSION_SPECIFIC_ADDR(0x00229F74), (void*)Hook__renderer_setup_player_windows);
 #endif
     
     // Hook HalReturnToFirmware so that any attempt to quit the game results in a cold reboot of the console.
     // Due to how we hot patch the kernel(in 128MB mode) the console is basically "hosed" after running the game. Any attempt
     // to run another executable, return to dash, IRG, etc, will result in graphical artifacting and the console freezing.
     // If the console doesn't have extra RAM but the user overclocks the GPU we want to reset that as well.
-    Util_InstallHook((void*)HalReturnToFirmware, (void*)Hack_ColdRebootConsole);
+    InstallColdRebootHook();
 
     // Calculate fov scale.
     _first_person_field_of_view_scale = Cfg_FieldOfView.GetValue<float>() / 70.f;
@@ -215,9 +212,9 @@ extern "C" void __cdecl ExpansionMain()
     if (Cfg_DisableHud.GetValue<bool>() == true)
     {
 #ifdef H2_1_0
-        Util_InstallHook((void*)VERSION_SPECIFIC_ADDR(0x0013939B), (void*)Hook__should_draw_player_hud);
+        HookFunction((void*)VERSION_SPECIFIC_ADDR(0x0013939B), (void*)Hook__should_draw_player_hud);
 #elif H2_1_5
-        Util_InstallHook((void*)VERSION_SPECIFIC_ADDR(0x0013BE7B), (void*)Hook__should_draw_player_hud);
+        HookFunction((void*)VERSION_SPECIFIC_ADDR(0x0013BE7B), (void*)Hook__should_draw_player_hud);
 #endif
     }
 
@@ -232,14 +229,8 @@ extern "C" void __cdecl ExpansionMain()
     {
         // Set anamorphic scale factor to 1.0 (_anamorphic_scale_factor is in rdata section...).
         float newScale = 1.f;
-        Util_WriteDword(&_anamorphic_scale_factor, *(unsigned int*)&newScale);
+        PatchDword(&_anamorphic_scale_factor, *(unsigned int*)&newScale);
     }
-
-    // Call the game's main routine.
-    game_main(0, 0, 0);
-
-    // Should never get here but just in case, return to dash.
-    XapiBootToDash(1, 1, 0);
 }
 
 bool Hook_rasterizer_preinitialize()
@@ -1021,7 +1012,7 @@ void* Hack_PhysicalMemoryAlloc(int regionIndex, int size, int protect)
     pRegionDesc->BaseAddress = MmAllocateContiguousMemoryEx(pRegionDesc->Size, 0, 0xFFFFFFFF, PAGE_SIZE, protect);
     if (pRegionDesc->BaseAddress == nullptr)
     {
-        DbgPrint("Hack_PhysicalMemoryAlloc: failed to allocate region '%s' for size 0x%08x!\n", pRegionDesc->Name, pRegionDesc->Name);
+        DbgPrint("Hack_PhysicalMemoryAlloc: failed to allocate region '%s' for size 0x%08x!\n", pRegionDesc->Name, pRegionDesc->Size);
         DBG_BREAKPOINT();
     }
 
@@ -1066,55 +1057,4 @@ void __declspec(naked) Hook_bink_playback_start(const char* file_path, unsigned 
 bool Hook__should_draw_player_hud()
 {
     return false;
-}
-
-void Hack_ColdRebootConsole()
-{
-    // If a custom fan speed was used change it back to normal.
-    if (Cfg_OverrideFanSpeed.GetValue<bool>() == true)
-    {
-        // Set the fan speed back to stock.
-        HalWriteSMBusValue(
-            0x20,               // SMC_SLAVE_ADDRESS
-            6,                  // SMC_COMMAND_REQUEST_FAN_SPEED
-            FALSE,
-            10                  // Fan speed
-        );
-
-        // Give the SMC a chance to process the message, if not it can panic.
-        KeStallExecutionProcessor(100*1000);
-
-        // Set SMC fan mode to use stock speed (this doesn't seem to work if the override speed is still set).
-        HalWriteSMBusValue(
-            0x20,               // SMC_SLAVE_ADDRESS
-            5,                  // SMC_COMMAND_FAN_OVERRIDE
-            FALSE,
-            0                   // SMC_FAN_OVERRIDE_DEFAULT
-        );
-        KeStallExecutionProcessor(100 * 1000);
-    }
-
-    // Check IRQL level to see if we can use HalWriteSMBusValue and if so have the SMC do a full reset for us.
-    if (KeGetCurrentIrql() < 2)     // DISPATCH_LEVEL
-    {
-        // Have the SMC do a full reset.
-        HalWriteSMBusValue(
-            0x20,               // SMC_SLAVE_ADDRESS
-            2,                  // SMC_COMMAND_RESET
-            FALSE,
-            1                   // SMC_RESET_ASSERT_RESET
-        );
-    }
-
-    // Perform full PCI reset.
-    __outbyte(
-        0xCF9,                  // RESET_CONTROL_REGISTER
-        0xE                     // RESET_CONTROL_FULL_RESET | RESET_CONTROL_RESET_CPU | RESET_CONTROL_SYSTEM_RESET
-    );
-
-halt:
-    // Halt the CPU and wait for the reboot, thanks for playing...
-    _disable();         // cli
-    __halt();           // hlt
-    goto halt;
 }

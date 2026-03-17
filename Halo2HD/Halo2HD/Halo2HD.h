@@ -7,7 +7,7 @@
 // will treat them as imports and expect to do a call [ds:XXXXXXXX] instead of calling them directly.
 #define WINBASEAPI
 #include <Windows.h>
-#include "Xbox/Xbox.h"
+#include <Kernel/XboxKernel.h>
 
 // Macro to indicate a function uses a custom calling convention (created during LTCG):
 #define __usercall

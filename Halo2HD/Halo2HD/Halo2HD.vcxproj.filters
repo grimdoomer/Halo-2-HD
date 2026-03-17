@@ -18,23 +18,17 @@
     <ClCompile Include="Halo2HD.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Xbox\Xbox.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Config\Config.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Utilities\Utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Debug.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TrainerInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Xbox\Xbox.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Blam\Halo2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -105,9 +99,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Blam\rasterizer\rasterizer_text.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Utilities\Utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Blam\main\main_time.h">

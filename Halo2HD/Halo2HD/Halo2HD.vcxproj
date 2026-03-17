@@ -57,7 +57,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)..\..\XoredTrainerLauncher\XoredTrainerLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <CallingConvention>StdCall</CallingConvention>
@@ -67,6 +67,12 @@
       </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalDependencies>XoredTrainerLib.lib</AdditionalDependencies>
+    </Lib>
+    <Lib>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\XoredTrainerLauncher\Release</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_v1.5|Win32'">
     <ClCompile>
@@ -80,7 +86,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)XoredTrainerLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
       <CallingConvention>StdCall</CallingConvention>
@@ -90,12 +96,17 @@
       </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <ForceSymbolReferences>
+      </ForceSymbolReferences>
+      <AdditionalDependencies>XoredTrainerLib.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)XoredTrainerLib\Release</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Config\Config.cpp" />
     <ClCompile Include="Debug.cpp" />
-    <ClCompile Include="Utilities\Utilities.cpp" />
-    <ClCompile Include="Xbox\Xbox.cpp" />
+    <ClCompile Include="TrainerInfo.cpp" />
     <ClCompile Include="Halo2HD.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -127,8 +138,6 @@
     <None Include="Blam\Halo2_v1.0_Symbols.cfg">
       <FileType>Document</FileType>
     </None>
-    <ClInclude Include="Utilities\Utilities.h" />
-    <ClInclude Include="Xbox\Xbox.h" />
     <None Include="Blam\Halo2_v1.5_Symbols.cfg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
