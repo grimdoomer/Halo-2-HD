@@ -11,7 +11,12 @@ ConfigFileValue Cfg_DisableAnamorphicScaling = { 0x6539f288, CfgValType_Bool, (u
 ConfigFileValue Cfg_DisableAtmosphericFog = { 0xb12e139d, CfgValType_Bool, (unsigned int)false };
 
 // Gameplay options:
-ConfigFileValue Cfg_FieldOfView = { 0x0136b5eb, CfgValType_Float, 70.0f };
+ConfigFileValue Cfg_FieldOfView = 
+{ 
+    .NameCrc = 0x0136b5eb, 
+    .Type = CfgValType_Float, 
+    .ValueAsFloat = 70.0f 
+};
 ConfigFileValue Cfg_SplitScreenFavor = { 0x2ded9bf1, CfgValType_Int, 2 };
 ConfigFileValue Cfg_DisableHud = { 0xf81deed7, CfgValType_Bool, (unsigned int)false };
 

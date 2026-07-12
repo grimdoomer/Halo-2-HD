@@ -429,10 +429,11 @@ typedef struct _D3DPRESENT_PARAMETERS_
     DWORD               Flags;
     UINT                FullScreen_RefreshRateInHz;
     UINT                FullScreen_PresentationInterval;
-    D3DSurface* BufferSurfaces[3];
-    D3DSurface* DepthStencilSurface;
+    D3DSurface*         BufferSurfaces[3];
+    D3DSurface*         DepthStencilSurface;
 
 } D3DPRESENT_PARAMETERS;
+static_assert(sizeof(D3DPRESENT_PARAMETERS) == 0x44, "D3DPRESENT_PARAMETERS incorrect struct size");
 
 #define D3DCREATE_HARDWARE_VERTEXPROCESSING     0x00000040L
 

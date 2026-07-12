@@ -26,6 +26,14 @@
 #include "Blam/rasterizer/xbox/rasterizer_xbox_main.h"
 #include "Blam/rasterizer/xbox/rasterizer_xbox_targets.h"
 
+// Specify trainer flags to the linker:
+#pragma comment(linker, "/trainer_flag:disable_xinit_limit_devkit_memory")
+#pragma comment(linker, "/trainer_flag:enable_extra_physical_memory")
+
+#ifdef H2_1_0
+#pragma comment(linker, "/trainer_flag:disable_title_update")
+#endif
+
 // Region indices for Hack_PhysicalMemoryRegionInfoTable:
 #define PHYS_MEM_REGION_GEOMETRY_CACHE                                  0
 #define PHYS_MEM_REGION_TEXTURE_CACHE                                   1
@@ -114,7 +122,7 @@ extern "C" void __cdecl TrainerDllMain()
     //DBG_BREAKPOINT();
 
     // Parse the config file.
-    ParseConfigFile("D:\\hd_config.ini", Cfg_ConfigFileOptionTable, Cfg_ConfigFileOptionTableCount);
+    //ParseConfigFile("D:\\hd_config.ini", Cfg_ConfigFileOptionTable, Cfg_ConfigFileOptionTableCount);
 
     // Check if we should overclock the GPU.
     if (Cfg_OverclockGPU.GetValue<bool>() == true)
@@ -147,10 +155,10 @@ extern "C" void __cdecl TrainerDllMain()
     }
 
     // Check if the console has 128MB of RAM.
-    if (GetMemoryCapacity() == 128)
+    if (GetMemoryCapacity() == 128 && (TrainerModule->Flags & _xdll_statf_extra_physical_memory_enabled) != 0)
     {
         // Patch the max usable PFN for contiguous allocations and flag the console has 128MB of RAM.
-        PatchKernelPhysicalMemoryLimit();
+        //PatchKernelPhysicalMemoryLimit();
         Hack_HasRamUpgrade = true;
 
         // Force enable triple buffering.
@@ -203,7 +211,7 @@ extern "C" void __cdecl TrainerDllMain()
     // Due to how we hot patch the kernel(in 128MB mode) the console is basically "hosed" after running the game. Any attempt
     // to run another executable, return to dash, IRG, etc, will result in graphical artifacting and the console freezing.
     // If the console doesn't have extra RAM but the user overclocks the GPU we want to reset that as well.
-    InstallColdRebootHook();
+    //InstallColdRebootHook();
 
     // Calculate fov scale.
     _first_person_field_of_view_scale = Cfg_FieldOfView.GetValue<float>() / 70.f;
